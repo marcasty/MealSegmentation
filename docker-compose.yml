@@ -1,0 +1,10 @@
+version: "1"
+services:
+  meal-segmentation:
+    # if something fails or the server is restarted, the container will restart
+    restart: always 
+    container_name: meal-segmentation
+    image: meal-segmentation
+    build: 
+      # build the docker image from the Dockerfile in the current directory
+      context: .
