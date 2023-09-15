@@ -1,0 +1,50 @@
+pizza
+sushi
+hamburger
+fried chicken
+pasta
+ramen
+tacos
+curry
+dim sum
+sashimi
+paella
+pho
+gyoza
+bbq ribs
+pad thai
+croissant
+tandoori chicken
+tempura
+guacamole
+peking duck
+chili con carne
+eggs benedict
+moussaka
+ceviche
+ravioli
+jambalaya
+chicken satay
+fajitas
+lobster bisque
+beef stroganoff
+beef and broccoli
+clam chowder
+gazpacho
+biryani
+poutine
+chicken adobo
+beef wellington
+shakshuka
+kimchi
+goulash
+ratatouille
+miso soup
+falafel
+pirozhki
+pupusas
+tiramisu
+chicken shawarma
+eggs florentine
+beef bulgogi
+matzo ball soup
