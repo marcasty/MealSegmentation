@@ -1,0 +1,12 @@
+version: "1"
+services:
+  meal-segmentation:
+      image: meal-segmentation:latest
+      container_name: meal-segmentation
+      volumes:
+        # mount the current directory into the container at /me
+        - .:/me
+      # if something fails or the server is restarted, the container will restart
+      restart: always 
+      environment:
+        HOME: /tmp

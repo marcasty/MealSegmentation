@@ -1,0 +1,17 @@
+PIL
+glob
+itertools
+locals
+matplotlib
+numpy
+opencv-python
+os
+pandas
+segment_anything
+sklearn
+supervision==0.6.0
+torch[cuda]
+torchvision[cuda]
+tqdm
+typing
+typing_extensions
