@@ -45,7 +45,7 @@ def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
     def enhance_class_name(class_names: List[str]) -> List[str]:
         return [f"all {class_name}s" for class_name in class_names]
 
-    for item in data_file:
+    for item in data_file['images']:
         if len(item['masks']) > 0:
             pass
         else:
