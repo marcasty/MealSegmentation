@@ -1,17 +1,7 @@
 from datetime import datetime
 import os
-import numpy as np
-import pandas as pd
-import itertools
-import tqdm
 from PIL import Image
-import matplotlib.pyplot as plt
 # Machine Learning Core
-import torch
-import torch.nn as nn
-import torchvision
-from torchvision import transforms, models
-from torch.utils.data import Dataset, DataLoader, Subset
 import json
 import argparse
 from icrawler.builtin import GoogleImageCrawler
