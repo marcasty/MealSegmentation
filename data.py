@@ -78,54 +78,50 @@ class COCO_MetaData:
     def get_num_annotations(self): return self.num_annotations
 
     def add_annotation(self):
-        return 1
+        return 'Write Me'
 
 # scrape google for new images, save relevant metadata according to coco format
 def crawl_google_images(metadata, new_foods, save_dir, quantity):
-    # set up crawler
-    google_Crawler = GoogleImageCrawler(storage = {'root_dir': save_dir})
-
-    # save a list of images already in the directory
-    old_images = os.listdir(save_dir)
+    if quantity is None: quantity = 10
 
     # add truly new foods to list of categories 
     num_cat_old = metadata.get_num_categories()
     metadata.add_categories(new_foods)
-    num_cat_new = metadata.get_num_categories()
 
     # execute the crawl across the entire list of new foods 
-    for i in range(num_cat_old + 1, num_cat_new):
-        if quantity is None:
-            quantity = 1
-        google_Crawler.crawl(keyword=metadata.coco["categories"][i], max_num=quantity)
+    for food in metadata.coco["categories"][num_cat_old:]:
+        print(f'FOOD: {food}')
+        google_crawler = GoogleImageCrawler(storage = {'root_dir': save_dir})
 
-        # list of newly scraped filenames
-        new_images = list(set(os.listdir(save_dir)) - set(old_images))
-        
+        #crawl
+        google_crawler.crawl(keyword=food, max_num=quantity)
+
         # make sure the query does not contain characters that are forbidden in filenames
         forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
-        clean_filename = ''.join(['-' if char in forbidden_chars else char for char in metadata.coco["categories"][i]])
-        
-        for idx, image_name in enumerate(new_images):
-            # save old path
-            image_path = f"{save_dir}/{image_name}"
-                                                  
-            # get image width/height
-            image = Image.open(image_path)
-            width, height, = image.size
-            image.close()
+        clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
+
+        for idx in range(0, quantity):
+            # get new image
+            try: 
+                img_path = f"{save_dir}/{idx+1:06d}.jpg"
+                img = Image.open(img_path)
+                img_type = 'jpg'
+            except:
+                img_path = f"{save_dir}/{idx+1:06d}.png"
+                img = Image.open(img_path)
+                img_type = 'png'
+            width, height, = img.size
+            img.close()
 
             # form new name based on query and index
-            image_num = f"{idx+1:05}"
-            new_image_name = f'{clean_filename}_{image_num}.jpg'  # if image_name.endswith('.jpg') else f'{query}_{idx+1}.png'
+            img_name = f'{clean_filename}_{idx+1:05}.{img_type}' 
             
             # add meta data to JSON file: filename, query, width, height
-            metadata.add_image_data(new_image_name, metadata.coco["categories"][i], width, height)
+            metadata.add_image_data(img_name, food, width, height)
 
             # create new path
-            new_image_path = f"{save_dir}/{new_image_name}"
-            # rename image to new path
-            os.rename(image_path, new_image_path)
+            new_img_path = f"{save_dir}/{img_name}"
+            os.rename(img_path, new_img_path)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
@@ -147,7 +143,7 @@ if __name__ == '__main__':
     with open(args.new_foods_text, "r") as f:
         new_foods = [line.strip() for line in f.readlines()]
 
-    crawl_google_images(coco, new_foods, args.img_dir, args.num_examples)
-
+    crawl_google_images(coco, new_foods[:2], args.img_dir, args.num_examples)
+    
     # export metadata to json file
     coco.export_coco()
