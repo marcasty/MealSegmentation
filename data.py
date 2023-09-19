@@ -74,7 +74,7 @@ class COCO_MetaData:
             else: file_name = "data.json"
 
         with open(file_name, "w") as json_file:
-            json.dump(self.coco, json_file)
+            json.dump(self.coco, json_file, indent=4)
     
     def get_num_annotations(self): return self.num_annotations
 
