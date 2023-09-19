@@ -65,12 +65,13 @@ class COCO_MetaData:
         self.num_images += 1
 
     # save the dict as a json file
-    def export_coco(self, replace = False):
-        # do you wish to replace the existing json file?
-        if replace is False:
-            current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            file_name = f"data_{current_datetime}.json"
-        else: file_name = "data.json"
+    def export_coco(self, file_name = None, replace = False):
+        if file_name is None:
+            # do you wish to replace the existing json file?
+            if replace is False:
+                current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                file_name = f"data_{current_datetime}.json"
+            else: file_name = "data.json"
 
         with open(file_name, "w") as json_file:
             json.dump(self.coco, json_file)
