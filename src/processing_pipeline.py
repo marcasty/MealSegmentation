@@ -8,7 +8,7 @@ import torch
 from transformers import AutoProcessor, Blip2ForConditionalGeneration
 from groundingdino.util.inference import Model as DINOModel
 from segment_anything import sam_model_registry, SamPredictor
-
+from data import COCO_MetaData
 
 HOME = os.path.expanduser("~")
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -28,9 +28,11 @@ SAM_CHECKPOINT_PATH = os.path.join(HOME, "weights", "sam_vit_h_4b8939.pth")
 sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
 mask_predictor = SamPredictor(sam)
 
-
 # Let us make a function that adds masks and boxes and classes to the existing dataset
 def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
+    # read in metadata
+    metadata = COCO_MetaData(data_file)
+    
     def get_hotwords(text):
         result = []
         pos_tag = ['PROPN', 'NOUN']
@@ -45,8 +47,8 @@ def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
     def enhance_class_name(class_names: List[str]) -> List[str]:
         return [f"all {class_name}s" for class_name in class_names]
 
-    for item in data_file['images']:
-        if len(item['masks']) > 0:
+    for item in metadata['images']:
+        if item['id'] < metadata["annotations"]:
             pass
         else:
             SOURCE_IMAGE_PATH = f"{img_dir}{item['filename']}"
@@ -65,6 +67,10 @@ def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
             generated_text = blip2_processer.batch_decode(generated_ids, skip_special_tokens=True)
             generated_text = generated_text[0].strip()
             blip2_words = set(get_hotwords(generated_text))
+            
+            # add annotation
+            metadata.add_annotation(item['id'])
+            metadata.add_blip2_spacy_annot(item['id'], generated_text, blip2_words)
 
             # GROUNDING DINO
             joint_words = blip2_words.union(search_words)
@@ -77,20 +83,18 @@ def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
                             classes=enhance_class_name(class_names=CLASSES),
                             box_threshold=box_thresh,
                             text_threshold=text_thresh)
-
+            
+            # add dino
+            metadata.add_dino_annot(CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+            
             # SAM
             mask_predictor.set_image(image_rgb)
             for obj in detections:
                 if obj[3] is not None:
                     DINO_box = obj[0]
-                    DINO_confidence = obj[2]
-                    class_label = CLASSES[obj[3]]
-                    masks, scores, logits = mask_predictor.predict(box=DINO_box, multimask_output=True)
+                    masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
                     best_mask_idx = np.argmax(scores)
                     high_conf_mask = masks[best_mask_idx]
-                    item['masks'].append(high_conf_mask)
-                    item['bounding_box'].append(DINO_box)
-                    item['mask_confidence'].append(scores[best_mask_idx])
-                    item['dino_confidence'].append(DINO_confidence)
-                    item['mask_labels'].append(class_label)
+                    metadata.coco["annotations"][item['id'] - 1]["masks"].append(high_conf_mask)
+                    metadata.coco["annotations"][item['id'] - 1]["mask_confidence"].append(scores[best_mask_idx])
     return data_file

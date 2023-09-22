@@ -53,8 +53,9 @@ class COCO_MetaData:
 
     # adds image meta data to json
     def add_image_data(self, filename, search_query, width, height):
+        self.num_images += 1
         image_data = {
-            "id": self.num_images + 1,
+            "id": self.num_images,
             "Google Search Query": search_query,
             "width": width,
             "height": height,
@@ -62,7 +63,6 @@ class COCO_MetaData:
             "date captured": datetime.now().strftime('%Y-%m-%d')
         }
         self.coco["images"].append(image_data)
-        self.num_images += 1
 
     # save the dict as a json file
     def export_coco(self, file_name = None, replace = False):
@@ -78,8 +78,30 @@ class COCO_MetaData:
     
     def get_num_annotations(self): return self.num_annotations
 
-    def add_annotation(self):
-        return 'Write Me'
+    # adds blank annotation
+    # annotations will include blip2, spacy, dino, and sam
+    # these are separated into different functions incase we have to split pipeline later
+    def add_annotation(self, id):
+        new_annotation = {
+            "id": id
+        }
+        self.coco["annotations"].append(new_annotation)
+
+    def add_blip2_spacy_annot(self, id, text, words):
+        self.coco["annotations"][id-1]["blip2"] = text
+        self.coco["annotations"][id-1]["spacy"] = words
+    
+    # adds dino annotations
+    # sam mask information is added directly in processing_pipeline.py ...hacky i know
+    def add_dino_annot(self, classes, class_ids,  boxes, box_confidence):
+        self.coco["annotations"][id-1]["num_objects"] = len(boxes)
+        self.coco["annotations"][id-1]["classes"] = classes
+        self.coco["annotations"][id-1]["class_ids"] = class_ids
+        self.coco["annotations"][id-1]["xyxy_boxes"] = boxes
+        self.coco["annotations"][id-1]["box_confidence"] = box_confidence
+        self.coco["annotations"][id-1]["masks"] = []
+        self.coco["annotations"][id-1]["mask_confidence"] = []
+
 
 # scrape google for new images, save relevant metadata according to coco format
 def crawl_google_images(metadata, new_foods, save_dir, quantity):
