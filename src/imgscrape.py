@@ -1,7 +1,7 @@
 from PIL import Image
 import argparse
 from icrawler.builtin import GoogleImageCrawler
-import FoodMetadata
+from FoodMetadataCOCO import FoodMetadata
 
 # scrape google for new images, save relevant metadata according to coco format
 def crawl_google_images(metadata, new_foods, save_dir, quantity):
