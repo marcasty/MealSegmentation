@@ -6,9 +6,10 @@ import argparse
 class FoodMetaData:
     """ stores meta data on food images in COCO format"""
     def __init__(self, json_file_path = None):
+        self.file_name = json_file_path
 
         # create a new json if none are supplied
-        if json_file_path is None:
+        if self.file_name is None:
             self.coco = { 
                 "info": {
                     "description": "Segmented Food Images from Google",
@@ -24,14 +25,14 @@ class FoodMetaData:
         
         # create coco object from json file path
         else: 
-            with open(json_file_path, 'r') as f:
+            with open(self.file_name, 'r') as f:
                 self.coco = json.load(f)
 
         # store the number of categories, images, annotations
         self.num_categories = len(self.coco["categories"])
         self.num_images = len(self.coco["images"])
         self.num_annotations= len(self.coco["annotations"])
-
+        
     # returns the number of 'categories' or meals found in dataset
     def get_num_categories(self): return self.num_categories
 
@@ -66,14 +67,17 @@ class FoodMetaData:
         self.coco["images"].append(image_data)
 
     # save the dict as a json file
-    def export_coco(self, file_name = None, replace = False):
-        if file_name is None:
-            # do you wish to replace the existing json file?
-            if replace is False:
+    def export_coco(self, new_file_name = None, replace = False):
+        if new_file_name is None:
+            # do you want to replace old json file?
+            if replace is True:
+                assert self.file_name is not None, "this object was not created from a file so a file cannot be replaced"
+                file_name = self.file_name
+            else:
                 current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                file_name = f"data_{current_datetime}.json"
-            else: file_name = "data.json"
-        print(file_name)
+                file_name = f"metadata_{current_datetime}.json"
+        else: file_name = new_file_name
+
         with open(file_name, "w") as json_file:
             json.dump(self.coco, json_file, indent=4)
     
@@ -115,5 +119,6 @@ if __name__ == '__main__':
     # either opens supplied json or creates new coco file
     coco = FoodMetaData(args.metadata_json)
     print(coco.coco)
+
     # export metadata to json file
     coco.export_coco()
