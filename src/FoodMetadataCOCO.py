@@ -3,7 +3,7 @@ from typing import List
 import json
 import argparse
 
-class FoodMetaData:
+class FoodMetadata:
     """ stores meta data on food images in COCO format"""
     def __init__(self, json_file_path = None):
         self.file_name = json_file_path
