@@ -117,7 +117,7 @@ if __name__ == '__main__':
     args = parse_arguments()
 
     # either opens supplied json or creates new coco file
-    coco = FoodMetaData(args.metadata_json)
+    coco = FoodMetadata(args.metadata_json)
     print(coco.coco)
 
     # export metadata to json file
