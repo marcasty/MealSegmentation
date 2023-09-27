@@ -52,7 +52,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
             metadata.add_image_data(img_name, food, width, height)
 
             # create new path
-            new_img_path = f"{sub_save_dir}/{img_name}"
+            new_img_path = f"{save_dir}{img_name}"
             os.rename(img_path, new_img_path)
         
         # save json as you go, if desired
