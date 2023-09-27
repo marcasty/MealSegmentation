@@ -15,25 +15,29 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
 
     # execute the crawl across the entire list of new foods 
     for food in metadata.coco["categories"][num_cat_old:]:
+        # make sure the query does not contain characters that are forbidden in filenames
+        forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
+        clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
+
+        # save each category in their own subdirectory
+        sub_save_dir = os.path.join(save_dir, clean_filename)
+        os.makedirs(sub_save_dir, exist_ok = True)
+
         print(f'FOOD: {food}')
-        google_crawler = GoogleImageCrawler(storage = {'root_dir': save_dir})
+        google_crawler = GoogleImageCrawler(storage = {'root_dir': sub_save_dir})
 
         #crawl
         google_crawler.crawl(keyword=food, max_num=quantity)
 
-        # make sure the query does not contain characters that are forbidden in filenames
-        forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
-        clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
-        print(clean_filename)
         for idx in range(0, quantity):
             # get new image
             try: 
-                img_path = f"{save_dir}/{idx+1:06d}.jpg"
+                img_path = f"{sub_save_dir}/{idx+1:06d}.jpg"
                 img = Image.open(img_path)
                 img_type = 'jpg'
             except:
                 try:
-                    img_path = f"{save_dir}/{idx+1:06d}.png"
+                    img_path = f"{sub_save_dir}/{idx+1:06d}.png"
                     img = Image.open(img_path)
                     img_type = 'png'
                 except: 
@@ -48,8 +52,10 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
             metadata.add_image_data(img_name, food, width, height)
 
             # create new path
-            new_img_path = f"{save_dir}/{img_name}"
+            new_img_path = f"{sub_save_dir}/{img_name}"
             os.rename(img_path, new_img_path)
+        
+        # save json as you go, if desired
         if json_path is not None:
             with open(json_path, "w") as json_file:
                 json.dump(metadata.coco, json_file, indent=4)
