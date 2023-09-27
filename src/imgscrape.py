@@ -31,9 +31,12 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity):
                 img = Image.open(img_path)
                 img_type = 'jpg'
             except:
-                img_path = f"{save_dir}/{idx+1:06d}.png"
-                img = Image.open(img_path)
-                img_type = 'png'
+                try:
+                    img_path = f"{save_dir}/{idx+1:06d}.png"
+                    img = Image.open(img_path)
+                    img_type = 'png'
+                except: 
+                    break
             width, height, = img.size
             img.close()
 
