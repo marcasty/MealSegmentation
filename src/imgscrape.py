@@ -23,7 +23,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity):
         # make sure the query does not contain characters that are forbidden in filenames
         forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
         clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
-
+        print(clean_filename)
         for idx in range(0, quantity):
             # get new image
             try: 
@@ -51,7 +51,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
     parser.add_argument("img_dir", type=str, help="Directory to save images")
     parser.add_argument("--metadata_json", type=str, help="JSON file containing metadata in COCO format")
-    parser.add_argument("new_foods_text", type=str, help="text file containing new foods to scrape")
+    #parser.add_argument("new_foods_text", type=str, help="text file containing new foods to scrape")
     parser.add_argument("--num_examples", type=int, help="number of examples per food you wish to scrape")
     parser.add_argument("--query", type=str, help="a single query to scrape")
     return parser.parse_args()
@@ -63,14 +63,14 @@ if __name__ == '__main__':
     args = parse_arguments()
 
     # either opens supplied json or creates new coco file
-    coco = COCO_MetaData(args.metadata_json)
+    coco = FoodMetadata(args.metadata_json)
 
     # read in list of new foods
-    with open(args.new_foods_text, "r") as f:
-        new_foods = [line.strip() for line in f.readlines()]
+    #with open(args.new_foods_text, "r") as f:
+    #    new_foods = [line.strip() for line in f.readlines()]
 
     # crawl 
-    crawl_google_images(coco, new_foods[:2], args.img_dir, args.num_examples)
+    crawl_google_images(coco, ['miso_soup'], args.img_dir, 1)
     
     # export metadata to json file
     coco.export_coco()
