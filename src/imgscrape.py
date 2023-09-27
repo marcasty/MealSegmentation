@@ -3,9 +3,10 @@ import argparse
 from icrawler.builtin import GoogleImageCrawler
 from FoodMetadataCOCO import FoodMetadata
 import os
+import json
 
 # scrape google for new images, save relevant metadata according to coco format
-def crawl_google_images(metadata, new_foods, save_dir, quantity):
+def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = None):
     if quantity is None: quantity = 10
 
     # add truly new foods to list of categories 
@@ -49,6 +50,9 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity):
             # create new path
             new_img_path = f"{save_dir}/{img_name}"
             os.rename(img_path, new_img_path)
+        if json_path is not None:
+            with open(json_path, "w") as json_file:
+                json.dump(metadata.coco, json_file, indent=4)
             
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
