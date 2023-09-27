@@ -46,7 +46,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
             img.close()
 
             # form new name based on query and index
-            img_name = f'{clean_filename}_{idx+1:05}.{img_type}' 
+            img_name = f'/{clean_filename}/{clean_filename}_{idx+1:05}.{img_type}' 
             
             # add meta data to JSON file: filename, query, width, height
             metadata.add_image_data(img_name, food, width, height)
