@@ -22,7 +22,6 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
         # save each category in their own subdirectory
         sub_save_dir = os.path.join(save_dir, clean_filename)
         os.makedirs(sub_save_dir, exist_ok = True)
-
         print(f'FOOD: {food}')
         google_crawler = GoogleImageCrawler(storage = {'root_dir': sub_save_dir})
 
@@ -83,7 +82,7 @@ if __name__ == '__main__':
     #    new_foods = [line.strip() for line in f.readlines()]
 
     # crawl 
-    crawl_google_images(coco, ['miso_soup'], args.img_dir, 1)
+    crawl_google_images(coco, ['miso_soup'], args.img_dir, 2)
     
     # export metadata to json file
     coco.export_coco()
