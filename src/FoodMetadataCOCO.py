@@ -50,7 +50,9 @@ class FoodMetadata:
         self.num_categories = len(self.coco["categories"])
 
     # return number of images in the dataset
-    def get_num_images(self): return self.num_images
+    def get_num_images(self): 
+        self.num_images = len(self.coco['images'])
+        return self.num_images
 
     def add_image_data(self, filename: str, search_query: str, width, height):
         """add an image to the coco json file
