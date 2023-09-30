@@ -85,4 +85,4 @@ if __name__ == '__main__':
     crawl_google_images(coco, ['miso_soup'], args.img_dir, 2)
     
     # export metadata to json file
-    coco.export_coco()
+    coco.export_coco('data.json')

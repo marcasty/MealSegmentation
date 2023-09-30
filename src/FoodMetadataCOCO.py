@@ -88,23 +88,27 @@ class FoodMetadata:
         new_annotation = {
             "id": id
         }
-        self.coco["annotations"].append(new_annotation)
+        self.coco["annotations"][id] = new_annotation
 
     def add_blip2_spacy_annot(self, id, text, words):
-        """adds  """
-        self.coco["annotations"][id-1]["blip2"] = text
-        self.coco["annotations"][id-1]["spacy"] = words
+        """add blip2 and spacy results"""
+        new_annotation = {
+            "id": id,
+            "blip2": text,
+            "spacy": words
+        }
+        self.coco["annotations"][id] = new_annotation
     
     # adds dino annotations
     # sam mask information is added directly in processing_pipeline.py ...hacky i know
     def add_dino_annot(self, classes, class_ids,  boxes, box_confidence):
-        self.coco["annotations"][id-1]["num_objects"] = len(boxes)
-        self.coco["annotations"][id-1]["classes"] = classes
-        self.coco["annotations"][id-1]["class_ids"] = class_ids
-        self.coco["annotations"][id-1]["xyxy_boxes"] = boxes
-        self.coco["annotations"][id-1]["box_confidence"] = box_confidence
-        self.coco["annotations"][id-1]["masks"] = []
-        self.coco["annotations"][id-1]["mask_confidence"] = []
+        self.coco["annotations"][id]["num_objects"] = len(boxes)
+        self.coco["annotations"][id]["classes"] = classes
+        self.coco["annotations"][id]["class_ids"] = class_ids
+        self.coco["annotations"][id]["xyxy_boxes"] = boxes
+        self.coco["annotations"][id]["box_confidence"] = box_confidence
+        self.coco["annotations"][id]["masks"] = []
+        self.coco["annotations"][id]["mask_confidence"] = []
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")

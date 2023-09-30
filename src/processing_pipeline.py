@@ -47,54 +47,50 @@ def add_masks_and_labels(img_dir, data_file, box_thresh=0.35, text_thresh=0.25):
     def enhance_class_name(class_names: List[str]) -> List[str]:
         return [f"all {class_name}s" for class_name in class_names]
 
-    for item in metadata['images']:
-        if item['id'] < metadata["annotations"]:
-            pass
-        else:
-            SOURCE_IMAGE_PATH = f"{img_dir}{item['filename']}"
-            # get classes from filename
-            search_words = set(item['filename'].split('_')[0].split('-'))
-            forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
-                                 'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
-                                 'spoon', 'spoons', 'cup', 'cups']
+    for id,annot in metadata['images'].items():
+        SOURCE_IMAGE_PATH = f"{img_dir}{annot['filename']}"
+        # get classes from filename
+        search_words = set(annot['filename'].split('_')[0].split('-'))
+        forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
+                                'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
+                                'spoon', 'spoons', 'cup', 'cups']
 
-            # BLIP2 + SPACY
-            blip2_prompt = "the food here is"
-            image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            inputs = blip2_processer(image_rgb, text=blip2_prompt, return_tensors="pt").to(DEVICE, torch.float16)
-            generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-            generated_text = blip2_processer.batch_decode(generated_ids, skip_special_tokens=True)
-            generated_text = generated_text[0].strip()
-            blip2_words = set(get_hotwords(generated_text))
-            
-            # add annotation
-            metadata.add_annotation(item['id'])
-            metadata.add_blip2_spacy_annot(item['id'], generated_text, blip2_words)
+        # BLIP2 + SPACY
+        blip2_prompt = "the food here is"
+        image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        inputs = blip2_processer(image_rgb, text=blip2_prompt, return_tensors="pt").to(DEVICE, torch.float16)
+        generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
+        generated_text = blip2_processer.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_text = generated_text[0].strip()
+        blip2_words = set(get_hotwords(generated_text))
+        
+        # add annotation
+        metadata.add_blip2_spacy_annot(id, generated_text, blip2_words)
 
-            # GROUNDING DINO
-            joint_words = blip2_words.union(search_words)
-            CLASSES = []
-            for word in joint_words:
-                if word not in forbidden_classes:
-                    CLASSES.append(word)
-            detections = grounding_dino_model.predict_with_classes(
-                            image=image_bgr,
-                            classes=enhance_class_name(class_names=CLASSES),
-                            box_threshold=box_thresh,
-                            text_threshold=text_thresh)
-            
-            # add dino
-            metadata.add_dino_annot(CLASSES, detections.class_id, detections.xyxy, detections.confidence)
-            
-            # SAM
-            mask_predictor.set_image(image_rgb)
-            for obj in detections:
-                if obj[3] is not None:
-                    DINO_box = obj[0]
-                    masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
-                    best_mask_idx = np.argmax(scores)
-                    high_conf_mask = masks[best_mask_idx]
-                    metadata.coco["annotations"][item['id'] - 1]["masks"].append(high_conf_mask)
-                    metadata.coco["annotations"][item['id'] - 1]["mask_confidence"].append(scores[best_mask_idx])
+        # GROUNDING DINO
+        joint_words = blip2_words.union(search_words)
+        CLASSES = []
+        for word in joint_words:
+            if word not in forbidden_classes:
+                CLASSES.append(word)
+        detections = grounding_dino_model.predict_with_classes(
+                        image=image_bgr,
+                        classes=enhance_class_name(class_names=CLASSES),
+                        box_threshold=box_thresh,
+                        text_threshold=text_thresh)
+        
+        # add dino
+        metadata.add_dino_annot(CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+        
+        # SAM
+        mask_predictor.set_image(image_rgb)
+        for obj in detections:
+            if obj[3] is not None:
+                DINO_box = obj[0]
+                masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
+                best_mask_idx = np.argmax(scores)
+                high_conf_mask = masks[best_mask_idx]
+                metadata.coco["annotations"][id]["masks"].append(high_conf_mask)
+                metadata.coco["annotations"][id]["mask_confidence"].append(scores[best_mask_idx])
     return data_file
