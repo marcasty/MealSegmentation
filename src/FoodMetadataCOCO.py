@@ -19,8 +19,8 @@ class FoodMetadata:
                     "date_created": datetime.now().strftime('%Y-%m-%d')
                 },
                 "categories":[],
-                "images": [],
-                "annotations": []
+                "images": {},
+                "annotations": {}
                 }
         
         # create coco object from json file path
@@ -52,19 +52,18 @@ class FoodMetadata:
     # return number of images in the dataset
     def get_num_images(self): return self.num_images
 
-    # add image meta data to json
-    # id index starts at 1
     def add_image_data(self, filename: str, search_query: str, width, height):
+        """add an image to the coco json file
+        key=image id, value=image metadata"""
         self.num_images += 1
-        image_data = {
-            "id": self.num_images,
-            "Google Search Query": search_query,
-            "width": width,
-            "height": height,
-            "filename": filename,
-            "date captured": datetime.now().strftime('%Y-%m-%d')
-        }
-        self.coco["images"].append(image_data)
+        image_data = {"id": self.num_images,
+                    "Google Search Query": search_query,
+                    "width": width,
+                    "height": height,
+                    "filename": filename,
+                    "date captured": datetime.now().strftime('%Y-%m-%d')
+                    }
+        self.coco["images"][self.num_images] = image_data
 
     # save the dict as a json file
     def export_coco(self, new_file_name = None, replace = False):
@@ -84,16 +83,15 @@ class FoodMetadata:
     # return number of annotations
     def get_num_annotations(self): return self.num_annotations
 
-    # adds blank annotation
-    # annotations will include blip2, spacy, dino, and sam
-    # these are separated into different functions incase we have to split pipeline later
     def add_annotation(self, id):
+        """adds a blank entry to the annotations section of json"""
         new_annotation = {
             "id": id
         }
         self.coco["annotations"].append(new_annotation)
 
     def add_blip2_spacy_annot(self, id, text, words):
+        """adds  """
         self.coco["annotations"][id-1]["blip2"] = text
         self.coco["annotations"][id-1]["spacy"] = words
     
