@@ -1,12 +1,14 @@
-version: "1"
+version: "3.8"
+
 services:
   meal-segmentation:
       image: meal-segmentation:latest
       container_name: meal-segmentation
       volumes:
-        # mount the current directory into the container at /me
-        - .:/me
-      # if something fails or the server is restarted, the container will restart
-      restart: always 
+        - ../:/me
+      # restart: always 
+      # command: bash -c '. ./bin/grounding_dino.sh; sleep infinity'
+      command: bash -c 'sleep infinity'
+      runtime: nvidia
       environment:
         HOME: /tmp
