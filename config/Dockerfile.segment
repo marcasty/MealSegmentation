@@ -24,6 +24,19 @@ ADD requirements.txt /
 
 RUN pip install -r /requirements.txt
 
+RUN pip install -i https://test.pypi.org/simple/ bitsandbytes
+
+RUN cd /tmp \
+    && git clone https://github.com/IDEA-Research/GroundingDINO.git \
+    && cd GroundingDINO \
+    && git checkout -q 57535c5a79791cb76e36fdb64975271354f10251 \
+    && pip install --target=/usr/local/lib/python3.8/dist-packages -e . \
+    && cd /tmp \
+    && mkdir -p weights \
+    && cd weights \
+    && wget -q https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth \
+    && wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
+
 WORKDIR /me
 ENV PYTHONUNBUFFERED=1
 ENV CUDA_HOME=/usr/local/cuda/lib64
