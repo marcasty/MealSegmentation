@@ -1,5 +1,4 @@
 accelerate
-FoodMetadataCOCO
 glob
 icrawler
 imagededup
