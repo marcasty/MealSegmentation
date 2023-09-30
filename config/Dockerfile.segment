@@ -20,11 +20,10 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends --alow-unauthenticat
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-ADD requirements.txt /
+ADD config/requirements.txt /
 
-RUN pip install -r /requirements.txt
-
-RUN pip install -i https://test.pypi.org/simple/ bitsandbytes
+RUN pip install -r ./requirements.txt \
+    && -i https://test.pypi.org/simple/ bitsandbytes
 
 RUN cd /tmp \
     && git clone https://github.com/IDEA-Research/GroundingDINO.git \
