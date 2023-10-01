@@ -1,5 +1,6 @@
 # FROM python:3.8
-FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+# FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
 LABEL maintainer="Pranav Iyer pranaviyer2@gmail.com"
 LABEL version="1.0"
 
@@ -14,6 +15,21 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends --allow-unauthentica
     python3-pip \
     python-setuptools \
     cmake \
+    libpq-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libldap2-dev \
+    libsasl2-dev \
+    libffi-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libgl1-mesa-glx \
+    libsm6 \
+    libxext6 \
+    libgl1 \
+    libxrender1 \
+    libglib2.0-0 \
+    wget \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -31,11 +47,8 @@ RUN pip3 install \
     segment_anything \
     scikit-learn \
     spacy \
-    supervision \
-    supervision==0.6.0 \
+    supervision==0.4.0 \
     timm \
-    torch[cuda] \
-    torchvision[cuda] \
     tqdm \
     transformers \
     typing \
@@ -45,22 +58,24 @@ RUN pip3 install \
     PyYAML \
     bitsandbytes
 
-RUN APT_INSTALL="apt-get install -y --no-install-recommends --allow-unauthenticated" \
-    && apt update \
-    && DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-    wget
+RUN pip3 install \
+    torch==2.0.0+cu117 \
+    torchvision==0.15.1+cu117 \
+    torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu117
+
+RUN python3 -m spacy download en_core_web_sm
 
 RUN cd /tmp \
-    && git clone https://github.com/IDEA-Research/GroundingDINO.git \
-    && cd GroundingDINO \
-    && git checkout -q 57535c5a79791cb76e36fdb64975271354f10251 \
-    && pip install --target=/usr/local/lib/python3.8/dist-packages -e . \
-    && cd /tmp \
     && mkdir -p weights \
     && cd weights \
     && wget -q https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth \
     && wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
+    # && cd ../ \
+    # && git clone https://github.com/IDEA-Research/GroundingDINO.git \
+    # && cd GroundingDINO \
+    # && git checkout -q 57535c5a79791cb76e36fdb64975271354f10251
+    # && CUDA_HOME=/usr/local/cuda-11.7 pip install -e . \
 
 WORKDIR /me
 ENV PYTHONUNBUFFERED=1
-ENV CUDA_HOME=/usr/local/cuda/lib64
+ENV CUDA_HOME=/usr/local/cuda-11.7
