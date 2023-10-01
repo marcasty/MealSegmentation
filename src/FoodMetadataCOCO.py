@@ -2,15 +2,32 @@ from datetime import datetime
 from typing import List
 import json
 import argparse
+import numpy as np
+import os
+import torch
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, set):
+            return list(obj)
+        return super(NpEncoder, self).default(obj)
+
 
 class FoodMetadata:
     """ stores meta data on food images in COCO format"""
-    def __init__(self, json_file_path = None):
+    def __init__(self, json_file_path=None):
         self.file_name = json_file_path
 
         # create a new json if none are supplied
         if self.file_name is None:
-            self.coco = { 
+            self.coco = {
                 "info": {
                     "description": "Segmented Food Images from Google",
                     "version": "1.0",
@@ -18,21 +35,21 @@ class FoodMetadata:
                     "contributors": "marcasty, pranav270-create",
                     "date_created": datetime.now().strftime('%Y-%m-%d')
                 },
-                "categories":[],
+                "categories": [],
                 "images": {},
                 "annotations": {}
                 }
-        
+
         # create coco object from json file path
-        else: 
+        else:
             with open(self.file_name, 'r') as f:
                 self.coco = json.load(f)
 
         # store the number of categories, images, annotations
         self.num_categories = len(self.coco["categories"])
         self.num_images = len(self.coco["images"])
-        self.num_annotations= len(self.coco["annotations"])
-        
+        self.num_annotations = len(self.coco["annotations"])
+
     # returns the number of 'categories' or meals found in dataset
     def get_num_categories(self): return self.num_categories
 
@@ -45,12 +62,12 @@ class FoodMetadata:
         else:
             if new_foods not in old_food_set:
                 self.coco["categories"].append(new_foods)
-        
+
         # update number of categories
         self.num_categories = len(self.coco["categories"])
 
     # return number of images in the dataset
-    def get_num_images(self): 
+    def get_num_images(self):
         self.num_images = len(self.coco['images'])
         return self.num_images
 
@@ -59,16 +76,16 @@ class FoodMetadata:
         key=image id, value=image metadata"""
         self.num_images += 1
         image_data = {"id": self.num_images,
-                    "Google Search Query": search_query,
-                    "width": width,
-                    "height": height,
-                    "filename": filename,
-                    "date captured": datetime.now().strftime('%Y-%m-%d')
-                    }
+                      "Google Search Query": search_query,
+                      "width": width,
+                      "height": height,
+                      "filename": filename,
+                      "date captured": datetime.now().strftime('%Y-%m-%d')
+                      }
         self.coco["images"][self.num_images] = image_data
 
     # save the dict as a json file
-    def export_coco(self, new_file_name = None, replace = False):
+    def export_coco(self, new_file_name=None, replace=False):
         if new_file_name is None:
             # do you want to replace old json file?
             if replace is True:
@@ -77,11 +94,12 @@ class FoodMetadata:
             else:
                 current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 file_name = f"metadata_{current_datetime}.json"
-        else: file_name = new_file_name
+        else:
+            file_name = new_file_name
 
         with open(file_name, "w") as json_file:
-            json.dump(self.coco, json_file, indent=4)
-    
+            json.dump(self.coco, json_file, indent=4, cls=NpEncoder)
+
     # return number of annotations
     def get_num_annotations(self): return self.num_annotations
 
@@ -100,10 +118,9 @@ class FoodMetadata:
             "spacy": words
         }
         self.coco["annotations"][id] = new_annotation
-    
+
     # adds dino annotations
-    # sam mask information is added directly in processing_pipeline.py ...hacky i know
-    def add_dino_annot(self, classes, class_ids,  boxes, box_confidence):
+    def add_dino_annot(self, id, classes, class_ids, boxes, box_confidence):
         self.coco["annotations"][id]["num_objects"] = len(boxes)
         self.coco["annotations"][id]["classes"] = classes
         self.coco["annotations"][id]["class_ids"] = class_ids
@@ -112,10 +129,21 @@ class FoodMetadata:
         self.coco["annotations"][id]["masks"] = []
         self.coco["annotations"][id]["mask_confidence"] = []
 
+    def add_sam_annot(self, id, arr_masks, arr_mask_score, directory):
+        for i in range(len(arr_masks)):
+            image_id = self.coco["annotations"][id]["id"]
+            mask_id = f'{image_id}_{i}.pt'
+            mask_filepath = os.path.join(directory, mask_id)
+            torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
+            self.coco["annotations"][id]["masks"].append(mask_id)
+            self.coco["annotations"][id]["mask_confidence"].append(arr_mask_score[i])
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
     parser.add_argument("--metadata_json", type=str, help="JSON file containing metadata in COCO format")
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     args = parse_arguments()
