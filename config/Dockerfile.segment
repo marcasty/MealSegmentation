@@ -69,7 +69,8 @@ RUN cd /tmp \
     && mkdir -p weights \
     && cd weights \
     && wget -q https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth \
-    && wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
+    && wget -q https://github.com/ChaoningZhang/MobileSAM/blob/master/weights/mobile_sam.pt
+    #&& wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
     # && cd ../ \
     # && git clone https://github.com/IDEA-Research/GroundingDINO.git \
     # && cd GroundingDINO \
