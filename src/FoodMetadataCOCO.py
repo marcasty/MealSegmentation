@@ -1,4 +1,5 @@
 from datetime import datetime
+from pycocotools.coco import COCO
 from typing import List
 import json
 import argparse
@@ -20,35 +21,11 @@ class NpEncoder(json.JSONEncoder):
         return super(NpEncoder, self).default(obj)
 
 
-class FoodMetadata:
+class FoodMetadata(COCO):
     """ stores meta data on food images in COCO format"""
-    def __init__(self, json_file_path=None):
-        self.file_name = json_file_path
-
-        # create a new json if none are supplied
-        if self.file_name is None:
-            self.coco = {
-                "info": {
-                    "description": "Segmented Food Images from Google",
-                    "version": "1.0",
-                    "year": datetime.now().strftime('%Y'),
-                    "contributors": "marcasty, pranav270-create",
-                    "date_created": datetime.now().strftime('%Y-%m-%d')
-                },
-                "categories": [],
-                "images": {},
-                "annotations": {}
-                }
-
-        # create coco object from json file path
-        else:
-            with open(self.file_name, 'r') as f:
-                self.coco = json.load(f)
-
-        # store the number of categories, images, annotations
-        self.num_categories = len(self.coco["categories"])
-        self.num_images = len(self.coco["images"])
-        self.num_annotations = len(self.coco["annotations"])
+    def __init__(self, annotation_file=None):
+        super().__init__(annotation_file)
+        self.file_name = annotation_file
 
     # returns the number of 'categories' or meals found in dataset
     def get_num_categories(self): return self.num_categories
@@ -150,7 +127,6 @@ if __name__ == '__main__':
 
     # either opens supplied json or creates new coco file
     coco = FoodMetadata(args.metadata_json)
-    print(coco.coco)
-
+    print(coco.dataset)
     # export metadata to json file
-    coco.export_coco()
+    #coco.export_coco(new_file_name='new_format.json')
