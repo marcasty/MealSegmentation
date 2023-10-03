@@ -26,7 +26,19 @@ class FoodMetadata(COCO):
     def __init__(self, annotation_file=None):
         super().__init__(annotation_file)
         self.file_name = annotation_file
-
+        if annotation_file is None:
+            self.dataset = {
+                'info': {
+                "description": "Segmented Food Images",
+                "version": "1.0",
+                "year": datetime.now().strftime('%Y'),
+                "contributors": "marcasty, pranav270-create",
+                "date_created": datetime.now().strftime('%Y-%m-%d')
+                },
+                'categories':[],
+                'images':[],
+                'annotations':[]
+            }
     # returns the number of 'categories' or meals found in dataset
     def get_num_categories(self): return self.num_categories
 
@@ -48,18 +60,22 @@ class FoodMetadata(COCO):
         self.num_images = len(self.coco['images'])
         return self.num_images
 
-    def add_image_data(self, filename: str, search_query: str, width, height):
-        """add an image to the coco json file
-        key=image id, value=image metadata"""
+    def add_image_data(self, filename: str, width, height, search_query: str = None):
+        """add an image to the coco json file"""
         self.num_images += 1
         image_data = {"id": self.num_images,
-                      "Google Search Query": search_query,
+                      "filename": filename,
                       "width": width,
                       "height": height,
-                      "filename": filename,
                       "date captured": datetime.now().strftime('%Y-%m-%d')
                       }
-        self.coco["images"][self.num_images] = image_data
+        
+        # append query if it was google searched
+        if search_query is not None:
+            image_data["Google Search Query"]: search_query
+
+        self.dataset["images"].append(image_data) 
+
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
@@ -75,7 +91,7 @@ class FoodMetadata(COCO):
             file_name = new_file_name
 
         with open(file_name, "w") as json_file:
-            json.dump(self.coco, json_file, indent=4, cls=NpEncoder)
+            json.dump(self.dataset, json_file, indent=4, cls=NpEncoder)
 
     # return number of annotations
     def get_num_annotations(self): return self.num_annotations
@@ -127,6 +143,7 @@ if __name__ == '__main__':
 
     # either opens supplied json or creates new coco file
     coco = FoodMetadata(args.metadata_json)
-    print(coco.dataset)
+    print(coco.dataset['categories'])
+
     # export metadata to json file
     #coco.export_coco(new_file_name='new_format.json')

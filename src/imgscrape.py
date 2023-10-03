@@ -14,7 +14,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
     metadata.add_categories(new_foods)
 
     # execute the crawl across the entire list of new foods 
-    for food in metadata.coco["categories"][num_cat_old:]:
+    for food in metadata.dataset["categories"][num_cat_old:]:
         # make sure the query does not contain characters that are forbidden in filenames
         forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
         clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
@@ -48,7 +48,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
             img_name = f'/{clean_filename}/{clean_filename}_{idx+1:05}.{img_type}' 
             
             # add meta data to JSON file: filename, query, width, height
-            metadata.add_image_data(img_name, food, width, height)
+            metadata.add_image_data(img_name, width, height, food)
 
             # create new path
             new_img_path = f"{save_dir}{img_name}"
@@ -57,7 +57,7 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
         # save json as you go, if desired
         if json_path is not None:
             with open(json_path, "w") as json_file:
-                json.dump(metadata.coco, json_file, indent=4)
+                json.dump(metadata.dataset, json_file, indent=4)
             
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
