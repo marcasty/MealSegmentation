@@ -7,6 +7,9 @@ import json
 
 # scrape google for new images, save relevant metadata according to coco format
 def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = None):
+    """
+    new_foods are new google search queries
+    they get added to categories if they're new"""
     if quantity is None: quantity = 10
 
     # add truly new foods to list of categories 
@@ -15,21 +18,22 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
 
     # execute the crawl across the entire list of new foods 
     for food in metadata.dataset["categories"][num_cat_old:]:
-        # make sure the query does not contain characters that are forbidden in filenames
-        forbidden_chars = ' <>:"/\\|?*_'  # Include underscore for later convenience
-        clean_filename = ''.join(['-' if char in forbidden_chars else char for char in food])
+        food_name = food["name"]
+        print(f'FOOD: {food_name}')
 
         # save each category in their own subdirectory
-        sub_save_dir = os.path.join(save_dir, clean_filename)
+        sub_save_dir = os.path.join(save_dir, food_name)
         os.makedirs(sub_save_dir, exist_ok = True)
-        print(f'FOOD: {food}')
+                
+        # initialize crawler
         google_crawler = GoogleImageCrawler(storage = {'root_dir': sub_save_dir})
 
-        #crawl
-        google_crawler.crawl(keyword=food, max_num=quantity)
+        # replace '-' with ' ' for google query purposes
+        query = food_name.replace('-', ' ')
+        google_crawler.crawl(keyword=query, max_num=quantity)
 
         for idx in range(0, quantity):
-            # get new image
+            # get new image; if the file is not .jpg or png, continue
             try: 
                 img_path = f"{sub_save_dir}/{idx+1:06d}.jpg"
                 img = Image.open(img_path)
@@ -39,16 +43,16 @@ def crawl_google_images(metadata, new_foods, save_dir, quantity, json_path = Non
                     img_path = f"{sub_save_dir}/{idx+1:06d}.png"
                     img = Image.open(img_path)
                     img_type = 'png'
-                except: 
+                except:
                     break
             width, height, = img.size
             img.close()
 
             # form new name based on query and index
-            img_name = f'/{clean_filename}/{clean_filename}_{idx+1:05}.{img_type}' 
+            img_name = f'/{food_name}/{food_name}_{idx+1:05}.{img_type}' 
             
             # add meta data to JSON file: filename, query, width, height
-            metadata.add_image_data(img_name, width, height, food)
+            metadata.add_image_data(img_name, width, height, food["id"], query)
 
             # create new path
             new_img_path = f"{save_dir}{img_name}"
@@ -82,7 +86,14 @@ if __name__ == '__main__':
     #    new_foods = [line.strip() for line in f.readlines()]
 
     # crawl 
-    crawl_google_images(coco, ['miso_soup'], args.img_dir, 2)
+    crawl_google_images(coco, ['bacon and eggs', 'burger and fries', 'apple and banana'], args.img_dir, 2)
     
     # export metadata to json file
     coco.export_coco('data.json')
+    
+    print('*' * 20)
+    print(f'imgs {coco.imgs}')
+    print('*' * 20)
+    print(f'cats {coco.cats}')
+    print('*' * 20)
+    print(f'catToImgs {coco.catToImgs}')

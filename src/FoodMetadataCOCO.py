@@ -40,30 +40,54 @@ class FoodMetadata(COCO):
                 'annotations':[]
             }
     # returns the number of 'categories' or meals found in dataset
-    def get_num_categories(self): return self.num_categories
+    def get_num_categories(self): 
+        return len(self.cats)
 
     # add new, unique foods to categories section
     def add_categories(self, new_foods: List[str]):
-        old_food_set = set(self.coco["categories"])
-        if isinstance(new_foods, list):
-            new_foods_unique = [item for item in new_foods if item not in old_food_set]
-            self.coco["categories"].extend(new_foods_unique)
-        else:
-            if new_foods not in old_food_set:
-                self.coco["categories"].append(new_foods)
+        """
+        add new foods to categories 
+        self.dataset["categories"] = [{
+            'id': integer, 
+            'name': 'item-qualifier', 
+            'name_readable': 'Item, qualifier'
+            'supercategory': 'food' }]
+        """
 
-        # update number of categories
-        self.num_categories = len(self.coco["categories"])
+        assert isinstance(new_foods, list), "please wrap new foods in list"
+        
+        existing_food_names = set(food['name'] for food in self.dataset["categories"])
+        
+        for food in new_foods:
+            ingredients = food.split(' ')
 
+            # prepare data to add to dicitonary
+            if self.get_num_categories() > 0:
+                id = self.dataset['categories'][-1]['id'] + 1
+            else: id = 1
+            name = '-'.join(ingredients)
+            name_readable = ', '.join(ingredient.capitalize() for ingredient in ingredients)
+
+            if name not in existing_food_names:
+                new_category = {
+                    'id': id,
+                    'name': name,
+                    'name_readable': name_readable,
+                    'supercategory': 'food'
+                    }
+                self.dataset['categories'].append(new_category)
+                self.cats[id] = new_category
+                self.catToImgs[id] = []
     # return number of images in the dataset
     def get_num_images(self):
-        self.num_images = len(self.coco['images'])
-        return self.num_images
+        return len(self.imgs)
 
-    def add_image_data(self, filename: str, width, height, search_query: str = None):
+    def add_image_data(self, filename: str, width, height, cat_id, query: str = None):
         """add an image to the coco json file"""
-        self.num_images += 1
-        image_data = {"id": self.num_images,
+        if self.get_num_images() > 0:
+            id = self.dataset['images'][-1]["id"] + 1
+        else: id = 1
+        new_image = {"id": id,
                       "filename": filename,
                       "width": width,
                       "height": height,
@@ -71,11 +95,12 @@ class FoodMetadata(COCO):
                       }
         
         # append query if it was google searched
-        if search_query is not None:
-            image_data["Google Search Query"]: search_query
+        if query is not None:
+            new_image["Google Search Query"]: query
 
-        self.dataset["images"].append(image_data) 
-
+        self.dataset["images"].append(new_image) 
+        self.imgs[id] = new_image
+        self.catToImgs[cat_id].append(id)
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
