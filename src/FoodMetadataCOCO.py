@@ -88,6 +88,7 @@ class FoodMetadata(COCO):
             id = self.dataset['images'][-1]["id"] + 1
         else: id = 1
         new_image = {"id": id,
+                     "category_id": cat_id,
                       "filename": filename,
                       "width": width,
                       "height": height,
@@ -101,6 +102,80 @@ class FoodMetadata(COCO):
         self.dataset["images"].append(new_image) 
         self.imgs[id] = new_image
         self.catToImgs[cat_id].append(id)
+        self.imgToAnns[id] = []
+
+    # return number of annotations
+    def get_num_annotations(self): 
+        return len(self.anns)
+
+    def add_annotation(self, image_id):
+        """initializes new id"""
+        if self.get_num_annotations() > 0:
+            id = self.dataset['annotations'][-1]["id"] + 1
+        else: id = 1
+        
+        new_annotation = {
+            "id": id,
+            "image_id": image_id,
+            "category_id": self.imgs[image_id]["category_id"],
+        }
+        self.dataset["annotations"].append(new_annotation)
+        self.anns[id] = new_annotation
+        self.imgToAnns[image_id].append(id)
+
+    def add_blip2_spacy_annot(self, image_id, text, words):
+        """add blip2 and spacy results"""
+
+        # initialize annotation
+        self.add_annotation(image_id)
+
+        self.dataset["annotations"][-1]["blip2"] = text
+        self.dataset["annotations"][-1]["spacy"] = words
+
+        id = self.dataset["annotations"][-1]["id"]
+        self.anns[id]["blip2"] = text
+        self.anns[id]["spacy"] = words
+
+
+    # adds dino annotations
+    def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
+
+        new_annotation = self.anns[ann_id]
+        new_annotation["num_objects"] = len(boxes)
+        new_annotation["classes"] = classes
+        new_annotation["class_ids"] = class_ids
+        new_annotation["xyxy_boxes"] = boxes
+        new_annotation["box_confidence"] = box_confidence
+        
+        # if not first box saved to image, add new annotation
+        if 'xyxy_boxes' in self.anns[ann_id]:
+            # update id info
+            id = self.dataset['annotations'][-1]['id'] + 1
+            new_annotation["id"] = id
+
+            # add new annotation
+            self.dataset['annotations'].append(new_annotation)
+            self.anns[id] = new_annotation
+            self.imgToAnns[img_id].append(id)
+        
+        # if this is first box saved to image, update first instance of annotation
+        else:
+            for idx, item in enumerate(self.dataset['annotations']):
+                if item['id'] == ann_id:
+                    self.dataset["annotations"][idx] = new_annotation
+            self.anns["ann_id"] = new_annotation
+
+        # self.dataset["annotations"][id]["masks"] = []
+        # self.dataset["annotations"][id]["mask_confidence"] = []
+
+    def add_sam_annot(self, id, arr_masks, arr_mask_score, directory):
+        for i in range(len(arr_masks)):
+            image_id = self.coco["annotations"][id]["id"]
+            mask_id = f'{image_id}_{i}.pt'
+            mask_filepath = os.path.join(directory, mask_id)
+            torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
+            self.coco["annotations"][id]["masks"].append(mask_id)
+            self.coco["annotations"][id]["mask_confidence"].append(arr_mask_score[i])
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
@@ -117,45 +192,6 @@ class FoodMetadata(COCO):
 
         with open(file_name, "w") as json_file:
             json.dump(self.dataset, json_file, indent=4, cls=NpEncoder)
-
-    # return number of annotations
-    def get_num_annotations(self): return self.num_annotations
-
-    def add_annotation(self, id):
-        """adds a blank entry to the annotations section of json"""
-        new_annotation = {
-            "id": id
-        }
-        self.coco["annotations"][id] = new_annotation
-
-    def add_blip2_spacy_annot(self, id, text, words):
-        """add blip2 and spacy results"""
-        new_annotation = {
-            "id": id,
-            "blip2": text,
-            "spacy": words
-        }
-        self.coco["annotations"][id] = new_annotation
-
-    # adds dino annotations
-    def add_dino_annot(self, id, classes, class_ids, boxes, box_confidence):
-        self.coco["annotations"][id]["num_objects"] = len(boxes)
-        self.coco["annotations"][id]["classes"] = classes
-        self.coco["annotations"][id]["class_ids"] = class_ids
-        self.coco["annotations"][id]["xyxy_boxes"] = boxes
-        self.coco["annotations"][id]["box_confidence"] = box_confidence
-        self.coco["annotations"][id]["masks"] = []
-        self.coco["annotations"][id]["mask_confidence"] = []
-
-    def add_sam_annot(self, id, arr_masks, arr_mask_score, directory):
-        for i in range(len(arr_masks)):
-            image_id = self.coco["annotations"][id]["id"]
-            mask_id = f'{image_id}_{i}.pt'
-            mask_filepath = os.path.join(directory, mask_id)
-            torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
-            self.coco["annotations"][id]["masks"].append(mask_id)
-            self.coco["annotations"][id]["mask_confidence"].append(arr_mask_score[i])
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")

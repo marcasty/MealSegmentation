@@ -26,7 +26,7 @@ def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp):
         return result
 
     count = 0
-    for id, annot in metadata.coco['images'].items():
+    for image_id, annot in metadata.imgs.items():
         count += 1
         if count < 5:
             start = time.time()
@@ -44,7 +44,7 @@ def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp):
             print(f'BLIP2 + spacy items are : {blip2_words}')
 
             # add annotation
-            metadata.add_blip2_spacy_annot(id, generated_text, blip2_words)
+            metadata.add_blip2_spacy_annot(image_id, generated_text, blip2_words)
             print(f'Time Taken: {time.time() - start}')
 
     return metadata
@@ -60,14 +60,20 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
         return [f"all {class_name}s" for class_name in class_names]
 
     count = 0
-    for id, annot in metadata.coco['images'].items():
+    for img_id, annot in metadata.imgs.items():
+
+        # get annotation id 
+        ann_id = metadata.getAnnsIds(imgIds=[img_id])[0]
+
         count += 1
         if count < 5:
             start = time.time()
             SOURCE_IMAGE_PATH = f"{img_dir}{annot['filename']}"
+            
             # get classes from filename
-            search_words = set(annot['filename'].split('/')[1].split('_')[0].split('-'))
-
+            #search_words = set(annot['filename'].split('/')[1].split('_')[0].split('-'))
+            search_words = metadata.cats[metadata.imgs[img_id]["category_id"]]["name_readable"]
+            
             forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
                                  'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
                                  'spoon', 'spoons', 'cup', 'cups']
@@ -75,7 +81,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
             image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-            blip2_words = set(metadata.coco["annotations"][id]["spacy"])
+            blip2_words = set(metadata.anns[ann_id]["spacy"])
 
             if use_searchwords:
                 joint_words = blip2_words.union(search_words)
@@ -95,7 +101,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
                             text_threshold=text_thresh)
 
             # add dino
-            metadata.add_dino_annot(id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+            metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
             print(f'DINO Time Taken: {time.time() - start}')
 
             # SAM
