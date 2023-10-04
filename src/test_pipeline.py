@@ -6,6 +6,7 @@ from FoodMetadataCOCO import FoodMetadata
 import supervision as sv
 import torch
 import sys
+import os
 sys.path.append('../src')
 sys.path.append('../')
 
@@ -41,10 +42,15 @@ def add_masks_and_labels(img_dir, mask_dir, data_file):
         mask = metadata.coco["annotations"][id]["masks"]
         scores = metadata.coco["annotations"][id]["mask_confidence"]
 
-        save_filename = f'data/test_{id}.png'
+        save_filename_box = f'../data/test_box_{id}.png'
+        save_filename_multibox = f'../data/test_multibox_{id}.png'
+        save_filename_mask = f'../data/test_mask_{id}.png'
+        save_filename_multimask = f'../data/test_multimask_{id}.png'
 
-        plot_sample(image_rgb, boxes, box_confidence, classes, class_ids, save_filename)
-
+        plot_boxes(image_rgb, boxes, box_confidence, classes, class_ids, save_filename_box)
+        multiplot_boxes(image_rgb, boxes, box_confidence, classes, class_ids, save_filename_multibox)
+        plot_masks(image_rgb, mask, scores, classes, class_ids, mask_dir, save_filename_mask)
+        multiplot_masks(image_rgb, mask, scores, classes, class_ids, mask_dir, save_filename_multimask)
 
 
 import matplotlib.patches as patches
@@ -81,7 +87,7 @@ def draw_text(ax, bb, txt, disp):
     draw_outline(text)
 
 
-def plot_sample(img, bboxes, box_confidence, classes, class_ids, filename, ax=None, figsize=(7, 11)):
+def plot_boxes(img, bboxes, box_confidence, classes, class_ids, filename, ax=None, figsize=(7, 11)):
     ax = img_show(img, ax=ax, figsize=figsize)
     for i in range(len(bboxes)):
         bb = get_bb(bboxes[i])
@@ -91,20 +97,58 @@ def plot_sample(img, bboxes, box_confidence, classes, class_ids, filename, ax=No
     plt.savefig(filename)
 
 
-def multiplot(image, boxes, classes, class_ids, figsize=(20, 5)):
+def plot_masks(img, masks_list, mask_confidence, classes, class_ids, load_path, filename, figsize=(20, 5)):
+    masked_image = np.zeros_like(img)
+    plt.figure(figsize=figsize)
+    legend = ''
+    for i in range(len(masks_list)):
+        food_mask = torch.load(os.path.join(load_path, masks_list[i])).int().detach().numpy()
+        masked_image[food_mask == 1] = img[food_mask == 1]
+        label = f'{str(classes[class_ids[i]])}, {mask_confidence[i]:.2f}'
+        legend += (label)
+        legend += '    '
+    plt.title(legend)
+    plt.imshow(masked_image)
+    plt.savefig(filename)
+
+
+def multiplot_masks(img, masks_list, mask_confidence, classes, class_ids, load_path, filename, figsize=(20, 5)):
+    num_objects = len(masks_list)
+    if num_objects > 1:
+        fig, ax = plt.subplots(1, num_objects, figsize=figsize)
+        plt.subplots_adjust(wspace=0.1, hspace=0)
+        fig.tight_layout()
+        for i, axs in enumerate(ax):
+            food_mask = torch.load(os.path.join(load_path, masks_list[i])).int().detach().numpy()
+            masked_image = np.zeros_like(img)
+            masked_image[food_mask == 1] = img[food_mask == 1]
+            label = f'{str(classes[class_ids[i]])}, {mask_confidence[i]:.2f}'
+            axs.set_title(label)
+            axs.imshow(masked_image)
+        plt.savefig(filename)
+    else:
+        plot_masks(img, masks_list, mask_confidence, classes, class_ids, load_path, filename, figsize=(20, 5))
+
+
+def multiplot_boxes(img, boxes, box_confidence, classes, class_ids, filename, figsize=(20, 5)):
     num_objects = len(boxes)
-    fig, ax = plt.subplots(1, num_objects + 1, figsize=figsize)
-    plt.subplots_adjust(wspace=0.1, hspace=0)
-    fig.tight_layout()
-    plot_sample(image, boxes, classes, class_ids, ax=ax[0])
-    for i, axs in enumerate(ax):
-        img = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        label = f'{str(classes[class_ids[i]])}, {box_confidence[class_ids[i]]:.2f}'
-        plot_sample(img, [boxes[i]], classes, [class_ids[i]], ax=ax[i + 1])
+    if num_objects > 1:
+        fig, ax = plt.subplots(1, num_objects, figsize=figsize)
+        plt.subplots_adjust(wspace=0.1, hspace=0)
+        fig.tight_layout()
+        for i, axs in enumerate(ax):
+            axs.imshow(img)
+            bb = get_bb(boxes[i])
+            draw_box(img, axs, bb)
+            label = f'{str(classes[class_ids[i]])}, {box_confidence[i]:.2f}'
+            draw_text(axs, bb, label, img.shape[0]*0.05)
+        plt.savefig(filename)
+    else:
+        plot_boxes(img, boxes, box_confidence, classes, class_ids, filename, figsize=(20, 5))
 
 
 if __name__ == '__main__':
-    img_dir = "images/"
-    mask_dir = "masks/"
-    data_file = "google_food101_10k_dedup_keywords_masks.json"
+    img_dir = "../images"
+    mask_dir = "../masks"
+    data_file = "../google_food101_10k_dedup_keywords_masks.json"
     add_masks_and_labels(img_dir, mask_dir, data_file)

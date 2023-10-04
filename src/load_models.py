@@ -2,7 +2,7 @@ import os
 import spacy
 from transformers import AutoProcessor, Blip2ForConditionalGeneration
 from groundingdino.util.inference import Model as DINOModel
-#from segment_anything import sam_model_registry, SamPredictor
+# from segment_anything import sam_model_registry, SamPredictor
 from mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 import torch
 
@@ -17,10 +17,10 @@ os.environ['BLIP2_MODEL'] = "Salesforce/blip2-opt-2.7b"
 os.environ['SPACY_MODEL'] = "en_core_web_sm"
 os.environ['GROUNDING_DINO_CHECKPOINT_PATH'] = os.path.join(HOME, "weights", "groundingdino_swint_ogc.pth")
 os.environ['GROUNDING_DINO_CONFIG_PATH'] = os.path.join(HOME, "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
-#os.environ['SAM_ENCODER_VERSION'] = "vit_h"
+# os.environ['SAM_ENCODER_VERSION'] = "vit_h"
 os.environ['SAM_ENCODER_VERSION'] = "vit_t"
-#os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "weights", "sam_vit_h_4b8939.pth")
-os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "weights", "mobile_sam.pt")
+# os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "weights", "sam_vit_h_4b8939.pth")
+os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "MobileSAM/weights/mobile_sam.pt")
 
 GROUNDING_DINO_CONFIG_PATH = os.environ['GROUNDING_DINO_CONFIG_PATH']
 GROUNDING_DINO_CHECKPOINT_PATH = os.environ['GROUNDING_DINO_CHECKPOINT_PATH']
