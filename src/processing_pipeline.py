@@ -101,7 +101,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
                             text_threshold=text_thresh)
 
             # add dino
-            metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+            dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
             print(f'DINO Time Taken: {time.time() - start}')
 
             # SAM
@@ -110,7 +110,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
             detected_classes = detections.class_id
             masks_list = []
             mask_confidence_list = []
-            for i in range(len(bounding_boxes)):
+            for i, ann_id in enumerate(dino_ann_ids):
                 print(f'Detected Classes are : {CLASSES[detected_classes[i]]}')
                 DINO_box = bounding_boxes[i]
                 masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
@@ -118,7 +118,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
                 high_conf_mask = masks[best_mask_idx]
                 masks_list.append(high_conf_mask)
                 mask_confidence_list.append(scores[best_mask_idx])
-            metadata.add_sam_annot(id, masks_list, mask_confidence_list, mask_dir)
+            metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
             print(f'SAM Total Time Taken: {time.time() - start}')
     return metadata
 

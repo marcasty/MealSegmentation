@@ -139,11 +139,13 @@ class FoodMetadata(COCO):
 
     # adds dino annotations
     def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
-
+        dino_ann_ids = []
+        
+        # craft a new annotation
         new_annotation = self.anns[ann_id]
+        new_annotation["num_objects"] = len(boxes)
+        new_annotation["classes"] = classes
         for i in range(0, len(boxes)):
-            new_annotation["num_objects"] = len(boxes)
-            new_annotation["classes"] = classes
             new_annotation["class_ids"] = class_ids[i]
             new_annotation["xyxy_boxes"] = boxes[i]
             new_annotation["box_confidence"] = box_confidence[i]
@@ -153,30 +155,33 @@ class FoodMetadata(COCO):
                 # update id info
                 id = self.dataset['annotations'][-1]['id'] + 1
                 new_annotation["id"] = id
-
+                dino_ann_ids.append(id)
                 # add new annotation
                 self.dataset['annotations'].append(new_annotation)
                 self.anns[id] = new_annotation
                 self.imgToAnns[img_id].append(id)
-            
+
             # if this is first box saved to image, update first instance of annotation
             else:
-                for idx, item in enumerate(self.dataset['annotations']):
-                    if item['id'] == ann_id:
-                        self.dataset["annotations"][idx] = new_annotation
-                self.anns["ann_id"] = new_annotation
+                dino_ann_ids.append(ann_id)
+                self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
+                self.anns[ann_id] = new_annotation
+        
+        return dino_ann_ids
 
-        # self.dataset["annotations"][id]["masks"] = []
-        # self.dataset["annotations"][id]["mask_confidence"] = []
-
-    def add_sam_annot(self, id, arr_masks, arr_mask_score, directory):
-        for i in range(len(arr_masks)):
-            image_id = self.coco["annotations"][id]["id"]
-            mask_id = f'{image_id}_{i}.pt'
+    def add_sam_annot(self, ann_ids, arr_masks, arr_mask_score, directory):
+        for i, ann_id in enumerate(ann_ids):
+            image_id = self.anns[ann_id]["image_id"]
+            mask_id = f'{image_id}_{ann_id}.pt'
             mask_filepath = os.path.join(directory, mask_id)
             torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
-            self.coco["annotations"][id]["masks"].append(mask_id)
-            self.coco["annotations"][id]["mask_confidence"].append(arr_mask_score[i])
+            self.dataset['annotations'][self.id_to_idx(ann_id)]['masks'] = mask_id
+            self.dataset['annotations'][self.id_to_idx(ann_id)]['mask_confidence'] = arr_mask_score[i]
+            self.anns['masks'] = mask_id
+            self.anns['mask_confidence'] = arr_mask_score[i]
+
+    def id_to_idx(self,id):
+        return [d for d in self.dataset['annotations'] if d.get('id') == id][0]
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
