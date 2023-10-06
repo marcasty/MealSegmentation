@@ -9,7 +9,7 @@ sliced ham
 hard cheese
 cottage cheese
 coffee
-fruit mixed
+mixed fruit
 $pancake
 tea
 salmon smoked
@@ -76,11 +76,11 @@ black olives
 parmesan
 spaetzle
 salad lambs ear
-salad leaf salad green
+salad leaf green
 potato
 $white cabbage
 halloumi
-beetroot raw
+raw beetroot
 bread grain
 applesauce
 raclette cheese
@@ -91,7 +91,7 @@ beef
 $taboule prepared with couscous
 aubergine eggplant
 mozzarella
-pasta penne
+penne pasta
 vegetable lasagne
 mandarine
 kiwi
@@ -108,9 +108,9 @@ raisins
 $ice tea on black tea basis
 kaki
 $smoothie
-crepe with flour plain
+crepe
 nuggets
-meat chili
+chili
 veggie burger
 chinese cabbage
 hamburger
@@ -125,7 +125,7 @@ leek
 fajita bread
 potato gnocchi
 rice noodles vermicelli
-bread whole wheat
+whole wheat bread
 onion
 garlic
 hummus
@@ -210,19 +210,19 @@ breadcrumbs
 fondue
 mushroom sauce
 strawberries
-pie plum baked with cake dough
+plum pie
 potatoes au gratin dauphinois
 capers
-bread wholemeal toast
+toasted wholemeal bread
 red radish
 fruit tart
-beans kidney
+kidney beans
 sauerkraut
 mustard
 country fries
 ketchup
 pasta linguini parpadelle tagliatelle
-chicken cut into strips
+chicken strips
 cookies
 sun dried tomatoe
 bread ticino
@@ -237,7 +237,7 @@ pistachio
 cream cheese
 bread rye
 witloof chicory
-goat cheese soft
+goat cheese
 grapefruit pomelo
 blue mould cheese
 guacamole
@@ -246,7 +246,7 @@ cordon bleu
 quinoa
 kefir
 rocket salad
-pizza with ham with mushrooms
+ham mushroom pizza
 fruit coulis
 plums
 pizza with ham
@@ -263,9 +263,9 @@ sauce cocktail
 chocolate croissant
 pumpkin seeds
 $artichoke
-soft drink with a taste
+soft drink
 apple pie
-white bread with butter eggs and milk
+fluffy bread roll
 $savoury pastry stick
 $canned tuna
 meat terrine pate
@@ -284,9 +284,9 @@ muffin
 pine nuts
 french pizza from alsace
 chocolate
-grits polenta
+polenta grits
 wine rose
-cola based drink
+cola
 raspberries
 roll with pieces of chocolate
 $cake lemon
@@ -296,7 +296,7 @@ $pearl onion
 tzatziki
 $ham croissant
 $corn crisps
-lentils green
+green lentils
 rice whole grain
 cervelat
 $aperol spritz
@@ -308,7 +308,7 @@ brioche
 vegetable au gratin baked
 basil
 almond butter
-pie apricot
+apricot pie
 rusk wholemeal
 conch pasta
 farfalle pasta
