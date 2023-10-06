@@ -65,7 +65,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
                        box_thresh=0.35, text_thresh=0.25, use_searchwords=False):
 
     # read in metadata
-    metadata = FoodMetadata(data_file)
+    metadata = FoodMetadata(data_file, pred = True)
 
     def enhance_class_name(class_names: List[str]) -> List[str]:
         return [f"all {class_name}s" for class_name in class_names]
