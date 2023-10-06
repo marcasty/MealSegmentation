@@ -22,24 +22,35 @@ class NpEncoder(json.JSONEncoder):
 
 class FoodMetadata(COCO):
     """ stores meta data on food images in COCO format"""
-    def __init__(self, annotation_file=None):
+    def __init__(self, annotation_file=None, pred = False):
         super().__init__(annotation_file)
         self.file_name = annotation_file
+
+        info = {
+            "description": "Segmented Food Images",
+            "version": "1.0",
+            "year": datetime.now().strftime('%Y'),
+            "contributors": "marcasty, pranav270-create",
+            "date_created": datetime.now().strftime('%Y-%m-%d')
+            }
 
         # initialize new COCO JSON
         if annotation_file is None:
             self.dataset = {
-                'info': {
-                "description": "Segmented Food Images",
-                "version": "1.0",
-                "year": datetime.now().strftime('%Y'),
-                "contributors": "marcasty, pranav270-create",
-                "date_created": datetime.now().strftime('%Y-%m-%d')
-                },
+                'info': info,
                 'categories':[],
                 'images':[],
                 'annotations':[]
             }
+        # if making predictions on given data, remove given annotations    
+        else:
+            if pred is True:
+                self.anns = {}
+                self.dataset['annotations'] = []
+                for img_id, _ in self.imgs.items():
+                    self.imgToAnns[img_id] = []
+            info["description"] = "Segmented Food Predictions"
+            self.dataset['info'] = info
 
     def get_num_categories(self): 
         """how many categories (foods) are in this dataset?"""
