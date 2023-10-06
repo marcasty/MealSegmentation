@@ -110,6 +110,10 @@ class FoodMetadata(COCO):
     def get_num_annotations(self): 
         """return number of annotations"""
         return len(self.anns)
+    
+    def imgToCat(self, img_id):
+      for cat, img_list in self.catToImgs.items():
+        if img_id in img_list: return cat
 
     def add_annotation(self, image_id):
         """initializes new id"""
@@ -120,7 +124,7 @@ class FoodMetadata(COCO):
         new_annotation = {
             "id": id,
             "image_id": image_id,
-            "category_id": self.imgs[image_id]["category_id"],
+            "category_id": self.imgToCat(image_id),
         }
         self.dataset["annotations"].append(new_annotation)
         self.anns[id] = new_annotation
