@@ -4,13 +4,14 @@ import cv2
 import numpy as np
 import torch
 from FoodMetadataCOCO import FoodMetadata
+from embedding_translation import assign_classes
 import time
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp, testing):
+def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp, embedding_vars = None, testing = False):
     # read in metadata
     metadata = FoodMetadata(data_file)
     category_ids = metadata.loadCats(metadata.getCatIds())
@@ -57,7 +58,10 @@ def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp, tes
             metadata.add_blip2_spacy_annot(img["id"], blip2_text, blip2_words)
         
         print(f'Time Taken: {time.time() - start}')
-
+    
+    if embedding_vars is not None:
+        assign_classes(metadata, category_names, embedding_vars)
+        
     return metadata
 
 

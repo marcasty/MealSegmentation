@@ -154,6 +154,13 @@ class FoodMetadata(COCO):
         self.anns[id]["blip2"] = text
         self.anns[id]["spacy"] = words
 
+    def add_class_from_embd(self, ann_id, mod_classes, classes):
+        """add class name nearest to blip/spacy output"""
+        new_annotation = self.anns[ann_id]
+        new_annotation["mod_class_from_embd"] = mod_classes
+        new_annotation["class_from_embd"] = classes
+        self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
+        self.anns[ann_id] = new_annotation
 
     # adds dino annotations
     def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):

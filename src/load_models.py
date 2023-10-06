@@ -48,12 +48,20 @@ if not os.path.exists(img_dir):
 if not os.path.exists(mask_dir):
     os.makedirs(mask_dir)
 
-# new_metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp)
+
+embd_model_type = "GloVe"
+embd_model_dir = '/me/embedding_model'
+modded_cat_path = '/me/round2_categories_modified.txt'
+if not os.path.exists(mask_dir):
+    os.makedirs(mask_dir)
+embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
+
+# new_metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing = False)
 
 """
 if testing is true, only get captions for 3 categories
 """
 new_metadata = get_boxes_and_mask(img_dir, mask_dir, file, grounding_dino_model, mask_predictor,
-                                  box_thresh=0.35, text_thresh=0.25, use_searchwords=False, testing=False)
+                                  box_thresh=0.35, text_thresh=0.25, use_searchwords=False)
 
 new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
