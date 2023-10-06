@@ -20,12 +20,13 @@ class NpEncoder(json.JSONEncoder):
             return list(obj)
         return super(NpEncoder, self).default(obj)
 
-
 class FoodMetadata(COCO):
     """ stores meta data on food images in COCO format"""
     def __init__(self, annotation_file=None):
         super().__init__(annotation_file)
         self.file_name = annotation_file
+
+        # initialize new COCO JSON
         if annotation_file is None:
             self.dataset = {
                 'info': {
@@ -39,14 +40,15 @@ class FoodMetadata(COCO):
                 'images':[],
                 'annotations':[]
             }
-    # returns the number of 'categories' or meals found in dataset
+
     def get_num_categories(self): 
+        """how many categories (foods) are in this dataset?"""
         return len(self.cats)
 
-    # add new, unique foods to categories section
     def add_categories(self, new_foods: List[str]):
         """
-        add new foods to categories 
+        -add new foods to categories 
+        -receives list of new foods; each element is words separated by spaces
         self.dataset["categories"] = [{
             'id': integer, 
             'name': 'item-qualifier', 
@@ -78,8 +80,9 @@ class FoodMetadata(COCO):
                 self.dataset['categories'].append(new_category)
                 self.cats[id] = new_category
                 self.catToImgs[id] = []
-    # return number of images in the dataset
+     
     def get_num_images(self):
+        """return number of images in the dataset"""
         return len(self.imgs)
 
     def add_image_data(self, filename: str, width, height, cat_id, query: str = None):
@@ -104,8 +107,8 @@ class FoodMetadata(COCO):
         self.catToImgs[cat_id].append(id)
         self.imgToAnns[id] = []
 
-    # return number of annotations
     def get_num_annotations(self): 
+        """return number of annotations"""
         return len(self.anns)
 
     def add_annotation(self, image_id):
