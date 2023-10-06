@@ -206,7 +206,10 @@ class FoodMetadata(COCO):
             self.anns['mask_confidence'] = arr_mask_score[i]
 
     def id_to_idx(self,id):
-        return [d for d in self.dataset['annotations'] if d.get('id') == id][0]
+        for index, dictionary in enumerate(self.dataset['annotations']):
+            if dictionary.get("id") == id:
+                return index
+        return -1  # Return -1 if the 'id' is not found in any dictionary in the list
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
