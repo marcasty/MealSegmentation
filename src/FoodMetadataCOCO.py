@@ -238,7 +238,18 @@ if __name__ == '__main__':
 
     # either opens supplied json or creates new coco file
     coco = FoodMetadata(args.metadata_json)
-    print(coco.dataset['categories'])
+    
+    # if you want to keep the annotations of the json file: 
+    val_data = FoodMetadata('public_validation_set_2.1_blip_spacy.json')
+
+    # if you want to make new predictions on the data, set pred=True
+    prediction = FoodMetadata('public_validation_set_release_2.1.json', pred=True)
 
     # export metadata to json file
-    #coco.export_coco(new_file_name='new_format.json')
+    coco.export_coco(new_file_name='data.json')
+
+    """
+    there are multiple annotations per image
+    there are multiple images per category
+    .catToImgs and imgToAnns are dicts in FoodMetadata class to keep track of this
+    """
