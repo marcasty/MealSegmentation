@@ -50,7 +50,10 @@ if not os.path.exists(mask_dir):
 
 # new_metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp)
 
+"""
+if testing is true, only get captions for 3 categories
+"""
 new_metadata = get_boxes_and_mask(img_dir, mask_dir, file, grounding_dino_model, mask_predictor,
-                                  box_thresh=0.35, text_thresh=0.25, use_searchwords=False)
+                                  box_thresh=0.35, text_thresh=0.25, use_searchwords=False, testing=False)
 
 new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)

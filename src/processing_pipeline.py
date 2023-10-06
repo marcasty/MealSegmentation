@@ -10,11 +10,14 @@ global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp):
+def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp, testing):
     # read in metadata
     metadata = FoodMetadata(data_file)
-
+    category_ids = metadata.loadCats(metadata.getCatIds())
+    category_names = [_["name_readable"] for _ in category_ids]
+    
     def get_hotwords(text):
+        """given text, produce hot words"""
         result = []
         pos_tag = ['PROPN', 'NOUN']
         doc = spacy_nlp(text.lower())
@@ -24,28 +27,36 @@ def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp):
             elif (token.pos_ in pos_tag):
                 result.append(token.text)
         return result
+    
+    def run_blip(path):
+        """given image path, produce text"""
+        image_bgr = cv2.imread(path)
+        image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        prompt = "the food or foods in this image include"
+        inputs = blip_processor(image, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
+        generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
+        generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_text = generated_text[0].strip()
+        return generated_text
 
     count = 0
-    for image_id, annot in metadata.imgs.items():
+    for cat_name in category_names:
         count += 1
-        if count < 5:
+        if count < 3 and testing is True:
             start = time.time()
-            SOURCE_IMAGE_PATH = f"{img_dir}{annot['filename']}"
 
-            # BLIP2 + SPACY
-            blip2_prompt = "the food here is"
-            image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-            inputs = blip_processor(image_rgb, text=blip2_prompt, return_tensors="pt").to(DEVICE, torch.float16)
-            generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-            generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
-            generated_text = generated_text[0].strip()
-            blip2_words = set(get_hotwords(generated_text))
-            print(f'BLIP2 + spacy items are : {blip2_words}')
-
-            # add annotation
-            metadata.add_blip2_spacy_annot(image_id, generated_text, blip2_words)
-            print(f'Time Taken: {time.time() - start}')
+        catIds = metadata.getCatIds([cat_name])
+        if len(catIds) == 0: continue
+        imgIds = metadata.getImgIds(catIds = catIds)
+        if len(imgIds) == 0: continue
+        imgs = metadata.loadImgs(imgIds)
+        
+        for img in imgs:
+            blip2_text = run_blip((f'{img_dir}/{img["file_name"]}'))
+            blip2_words = set(get_hotwords(blip2_text))
+            metadata.add_blip2_spacy_annot(img["id"], blip2_text, blip2_words)
+        
+        print(f'Time Taken: {time.time() - start}')
 
     return metadata
 
