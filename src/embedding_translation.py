@@ -3,7 +3,6 @@ from FoodMetadataCOCO import FoodMetadata
 from scipy import spatial
 import os
 
-# what is the model directory?
 def download_glove(model_dir):
     """
     Get a dictionary of word embeddings from GloVe
@@ -17,12 +16,18 @@ def download_glove(model_dir):
     import urllib.request
     import zipfile
 
-    urllib.request.urlretrieve('https://nlp.stanford.edu/data/glove.6B.zip','glove.6B.zip')
-    with zipfile.ZipFile(f'{model_dir}/glove.6B.zip', 'r') as zip_ref:
-        zip_ref.extractall(f'{model_dir}/glove')
+    # Download 
+    if not os.path.exists(f'{model_dir}/glove.6B.zip'):
+        print('Downloading GloVe')
+        urllib.request.urlretrieve('https://nlp.stanford.edu/data/glove.6B.zip',f'{model_dir}/glove.6B.zip')
+    if not os.path.exists('f{model_dir}/glove.6B.200d.txt'):
+        print('Unzipping GloVe')
+        with zipfile.ZipFile(f'{model_dir}/glove.6B.zip', 'r') as zip_ref:
+            zip_ref.extractall(f'{model_dir}')
 
+    print('Creating Dictionary of GloVe Embeddings')
     embed_dict = {}
-    with open('/content/glove.6B.200d.txt','r') as f:
+    with open(f'{model_dir}/glove.6B.200d.txt','r', encoding='utf-8') as f:
         for line in f:
             values = line.split()
             word = values[0]
@@ -96,24 +101,24 @@ def assign_classes(metadata, category_names, embedding_vars):
         metadata.add_class_from_embd(ann_id, mod_classes, classes)
 
 if __name__ == '__main__':
-    model_dir = '/tmp/glove'
+    HOME = 'C:/Users/marka/fun'
+
+    model_dir = f'{HOME}/MealSegmentation/tmp/embd_models'
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
     # download glove and save to some directory; this also happens in "assign_class()"
     #download_glove(model_dir)
 
-    # some embedding related variables:
-
     # the model
     embd_model_type = "GloVe"
 
-    # the path to the hand-modified category names 
-    modded_cat_path = '~/MealSegmentation/round2_categories_modified.txt'
+    # the path to the hand-modified category names
+    modded_cat_path = f'{HOME}/MealSegmentation/round2_categories_modified.txt'
     embedding_vars = [embd_model_type, model_dir, modded_cat_path]
 
     # import a json file that has blip2/spacy annotations
-    metadata = FoodMetadata('~/MealSegmentation/public_validation_set_2.1_blip_spacy.json')
+    metadata = FoodMetadata(f'{HOME}/MealSegmentation/public_validation_set_2.1_blip_spacy.json')
     category_ids = metadata.loadCats(metadata.getCatIds())
     category_names = [_["name_readable"] for _ in category_ids]
 
