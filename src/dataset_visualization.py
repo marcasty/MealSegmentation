@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import matplotlib.patheffects as patheffects
 import cv2
 import numpy as np
 from FoodMetadataCOCO import FoodMetadata
-import supervision as sv
 import torch
 import sys
 import os
@@ -51,11 +51,6 @@ def add_masks_and_labels(img_dir, mask_dir, data_file):
         multiplot_boxes(image_rgb, boxes, box_confidence, classes, class_ids, save_filename_multibox)
         plot_masks(image_rgb, mask, scores, classes, class_ids, mask_dir, save_filename_mask)
         multiplot_masks(image_rgb, mask, scores, classes, class_ids, mask_dir, save_filename_multimask)
-
-
-import matplotlib.patches as patches
-import matplotlib.patheffects as patheffects
-import matplotlib.pyplot as plt
 
 
 def img_show(img, ax=None, figsize=(7, 11)):

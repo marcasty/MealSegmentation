@@ -13,3 +13,13 @@ To run the docker:
 
 chmod +x bin/launch.sh 
 ./bin/launch.sh
+
+To enter the docker:
+
+docker exec -it meal-segmentation:latest bash
+
+Once inside the docker:
+
+cd src/
+chmod +x bin/grounding_dino.sh
+./bin/grounding_dino.sh

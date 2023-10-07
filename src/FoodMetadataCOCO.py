@@ -20,9 +20,10 @@ class NpEncoder(json.JSONEncoder):
             return list(obj)
         return super(NpEncoder, self).default(obj)
 
+
 class FoodMetadata(COCO):
     """ stores meta data on food images in COCO format"""
-    def __init__(self, annotation_file=None, pred = False):
+    def __init__(self, annotation_file=None, pred=False):
         super().__init__(annotation_file)
         self.file_name = annotation_file
 
@@ -38,11 +39,11 @@ class FoodMetadata(COCO):
         if annotation_file is None:
             self.dataset = {
                 'info': info,
-                'categories':[],
-                'images':[],
-                'annotations':[]
+                'categories': [],
+                'images': [],
+                'annotations': []
             }
-        # if making predictions on given data, remove given annotations    
+        # if making predictions on given data, remove given annotations 
         else:
             if pred is True:
                 self.anns = {}
@@ -52,7 +53,7 @@ class FoodMetadata(COCO):
             info["description"] = "Segmented Food Predictions"
             self.dataset['info'] = info
 
-    def get_num_categories(self): 
+    def get_num_categories(self):
         """how many categories (foods) are in this dataset?"""
         return len(self.cats)
 
@@ -68,16 +69,17 @@ class FoodMetadata(COCO):
         """
 
         assert isinstance(new_foods, list), "please wrap new foods in list"
-        
+
         existing_food_names = set(food['name'] for food in self.dataset["categories"])
-        
+
         for food in new_foods:
             ingredients = food.split(' ')
 
             # prepare data to add to dicitonary
             if self.get_num_categories() > 0:
                 id = self.dataset['categories'][-1]['id'] + 1
-            else: id = 1
+            else:
+                id = 1
             name = '-'.join(ingredients)
             name_readable = ', '.join(ingredient.capitalize() for ingredient in ingredients)
 
@@ -91,7 +93,7 @@ class FoodMetadata(COCO):
                 self.dataset['categories'].append(new_category)
                 self.cats[id] = new_category
                 self.catToImgs[id] = []
-     
+
     def get_num_images(self):
         """return number of images in the dataset"""
         return len(self.imgs)
@@ -100,7 +102,8 @@ class FoodMetadata(COCO):
         """add an image to the coco json file"""
         if self.get_num_images() > 0:
             id = self.dataset['images'][-1]["id"] + 1
-        else: id = 1
+        else:
+            id = 1
         new_image = {"id": id,
                      "category_id": cat_id,
                       "filename": filename,
@@ -108,12 +111,12 @@ class FoodMetadata(COCO):
                       "height": height,
                       "date captured": datetime.now().strftime('%Y-%m-%d')
                       }
-        
+
         # append query if it was google searched
         if query is not None:
             new_image["Google Search Query"]: query
 
-        self.dataset["images"].append(new_image) 
+        self.dataset["images"].append(new_image)
         self.imgs[id] = new_image
         self.catToImgs[cat_id].append(id)
         self.imgToAnns[id] = []
@@ -121,17 +124,19 @@ class FoodMetadata(COCO):
     def get_num_annotations(self): 
         """return number of annotations"""
         return len(self.anns)
-    
+
     def imgToCat(self, img_id):
-      for cat, img_list in self.catToImgs.items():
-        if img_id in img_list: return cat
+        for cat, img_list in self.catToImgs.items():
+            if img_id in img_list:
+                return cat
 
     def add_annotation(self, image_id):
         """initializes new id"""
         if self.get_num_annotations() > 0:
             id = self.dataset['annotations'][-1]["id"] + 1
-        else: id = 1
-        
+        else:
+            id = 1
+
         new_annotation = {
             "id": id,
             "image_id": image_id,
@@ -141,17 +146,23 @@ class FoodMetadata(COCO):
         self.anns[id] = new_annotation
         self.imgToAnns[image_id].append(id)
 
-    def add_blip2_spacy_annot(self, image_id, text, words):
+    def add_blip2_annot(self, image_id, text):
         """add blip2 and spacy results"""
 
         # initialize annotation
         self.add_annotation(image_id)
 
         self.dataset["annotations"][-1]["blip2"] = text
-        self.dataset["annotations"][-1]["spacy"] = words
-
         id = self.dataset["annotations"][-1]["id"]
         self.anns[id]["blip2"] = text
+
+    def add_spacy_annot(self, image_id, words):
+        """add blip2 and spacy results"""
+
+        # initialize annotation
+        self.add_annotation(image_id)
+        self.dataset["annotations"][-1]["spacy"] = words
+        id = self.dataset["annotations"][-1]["id"]
         self.anns[id]["spacy"] = words
 
     def add_class_from_embd(self, ann_id, mod_classes, classes):
@@ -165,7 +176,7 @@ class FoodMetadata(COCO):
     # adds dino annotations
     def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
         dino_ann_ids = []
-        
+
         # craft a new annotation
         new_annotation = self.anns[ann_id]
         new_annotation["num_objects"] = len(boxes)
@@ -174,7 +185,7 @@ class FoodMetadata(COCO):
             new_annotation["class_ids"] = class_ids[i]
             new_annotation["xyxy_boxes"] = boxes[i]
             new_annotation["box_confidence"] = box_confidence[i]
-            
+
             # if not first box saved to image, add new annotation
             if 'xyxy_boxes' in self.anns[ann_id]:
                 # update id info
@@ -191,7 +202,7 @@ class FoodMetadata(COCO):
                 dino_ann_ids.append(ann_id)
                 self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
                 self.anns[ann_id] = new_annotation
-        
+
         return dino_ann_ids
 
     def add_sam_annot(self, ann_ids, arr_masks, arr_mask_score, directory):
@@ -205,7 +216,7 @@ class FoodMetadata(COCO):
             self.anns['masks'] = mask_id
             self.anns['mask_confidence'] = arr_mask_score[i]
 
-    def id_to_idx(self,id):
+    def id_to_idx(self, id):
         for index, dictionary in enumerate(self.dataset['annotations']):
             if dictionary.get("id") == id:
                 return index
@@ -227,6 +238,7 @@ class FoodMetadata(COCO):
         with open(file_name, "w") as json_file:
             json.dump(self.dataset, json_file, indent=4, cls=NpEncoder)
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Defines a metadata object in COCO format and scrapes Google for images of food.")
     parser.add_argument("--metadata_json", type=str, help="JSON file containing metadata in COCO format")
@@ -238,7 +250,7 @@ if __name__ == '__main__':
 
     # either opens supplied json or creates new coco file
     coco = FoodMetadata(args.metadata_json)
-    
+
     # if you want to keep the annotations of the json file: 
     val_data = FoodMetadata('public_validation_set_2.1_blip_spacy.json')
 
