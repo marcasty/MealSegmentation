@@ -1,6 +1,7 @@
 import numpy as np
 from FoodMetadataCOCO import FoodMetadata
 from scipy import spatial
+import os
 
 # what is the model directory?
 def download_glove(model_dir):
@@ -93,4 +94,34 @@ def assign_classes(metadata, category_names, embedding_vars):
         mod_classes = find_similar_word(spacy_dict, embedded_cats_dict)
         classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
         metadata.add_class_from_embd(ann_id, mod_classes, classes)
-    
+
+if __name__ == '__main__':
+    model_dir = '/tmp/glove'
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    # download glove and save to some directory; this also happens in "assign_class()"
+    #download_glove(model_dir)
+
+    # some embedding related variables:
+
+    # the model
+    embd_model_type = "GloVe"
+
+    # the path to the hand-modified category names 
+    modded_cat_path = '~/MealSegmentation/round2_categories_modified.txt'
+    embedding_vars = [embd_model_type, model_dir, modded_cat_path]
+
+    # import a json file that has blip2/spacy annotations
+    metadata = FoodMetadata('~/MealSegmentation/public_validation_set_2.1_blip_spacy.json')
+    category_ids = metadata.loadCats(metadata.getCatIds())
+    category_names = [_["name_readable"] for _ in category_ids]
+
+    # find the nearest class to each blip2/spacy word
+    assign_classes(metadata, category_names, embedding_vars)
+
+    # look at one example
+    print(metadata.dataset['annotations'][0])
+
+    # save it so you can check it out :)
+    metadata.export_coco(new_file_name='embedding_test.json')
