@@ -61,7 +61,7 @@ def get_keywords(img_dir, data_file, blip_processor, blip2_model, spacy_nlp, emb
     
     if embedding_vars is not None:
         assign_classes(metadata, category_names, embedding_vars)
-        
+
     return metadata
 
 
@@ -69,7 +69,7 @@ def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_
                        box_thresh=0.35, text_thresh=0.25, use_searchwords=False):
 
     # read in metadata
-    metadata = FoodMetadata(data_file, pred = True)
+    metadata = FoodMetadata(data_file)
 
     def enhance_class_name(class_names: List[str]) -> List[str]:
         return [f"all {class_name}s" for class_name in class_names]
