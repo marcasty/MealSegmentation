@@ -55,7 +55,7 @@ def run_sam(image_rgb, CLASSES, detections, mask_predictor):
     detected_classes = detections.class_id
     masks_list = []
     mask_confidence_list = []
-    for i, ann_id in enumerate(detections):
+    for i, _ in enumerate(detections):
         print(f'Detected Classes are : {CLASSES[detected_classes[i]]}')
         DINO_box = bounding_boxes[i]
         masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
@@ -63,7 +63,7 @@ def run_sam(image_rgb, CLASSES, detections, mask_predictor):
         high_conf_mask = masks[best_mask_idx]
         masks_list.append(high_conf_mask)
         mask_confidence_list.append(scores[best_mask_idx])
-
+    return masks_list, mask_confidence_list    
 
 def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, embedding_vars=None, testing=False):
     # read in metadata
@@ -96,52 +96,54 @@ def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, emb
     return metadata
 
 
-def get_boxes_and_mask(img_dir, mask_dir, data_file, grounding_dino_model, mask_predictor, use_searchwords=False, testing=False):
+def get_boxes_and_mask(img_dir, mask_dir, metadata_path, word_type, 
+                       grounding_dino_model, mask_predictor, use_search_words = False, testing = True):
+  metadata = FoodMetadata(metadata_path)
+  
+  count = 0
+  for cat_id, _ in metadata.cats.items():
+    count += 1
+    if count > 2 and testing is True:
+      return metadata
+    else:
+      start = time.time()
+      imgIds = metadata.getImgIds(catIds=cat_id)
 
-    # read in metadata
-    metadata = FoodMetadata(data_file)
-    count = 0
-    for img_id, annot in metadata.imgs.items():
+      for img_id in imgIds:
 
-        # get annotation id
-        # ann_id = metadata.getAnnsIds(imgIds=[img_id])[0]
-        ann_id = metadata.id_to_idx(img_id)
-        count += 1
-        if count < 3 and testing is True:
-            start = time.time()
-            SOURCE_IMAGE_PATH = f"{img_dir}{annot['filename']}"
+        # Get Image
+        SOURCE_IMAGE_PATH = f'{img_dir}/{metadata.imgs[img_id]["file_name"]}'
+        image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
+        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-            # get classes from filename
-            # search_words = set(annot['filename'].split('/')[1].split('_')[0].split('-'))
-            search_words = metadata.cats[metadata.imgs[img_id]["category_id"]]["name_readable"]
+        ann_id = metadata.imgToAnns[img_id][0]['id']
+        
+        # get words to pass to DINO
+        if word_type == 'mod_class':
+          try:
+            classes = set(metadata.anns[ann_id]['mod_class_from_embd'])
+          except:
+            print(ann_id)
+            return -1
+        elif word_type == 'blip2':
+          classes = set(metadata.anns[ann_id]['spacy'])
+        
+        if use_search_words is not False:
+          classes.extend(metadata.imgs[img_id]['Google Search Query'])
 
-            forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
-                                 'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
-                                 'spoon', 'spoons', 'cup', 'cups']
+        forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
+                             'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
+                             'spoon', 'spoons', 'cup', 'cups']
 
-            image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        CLASSES = [word for word in classes if word not in forbidden_classes]
 
-            blip2_words = set(metadata.anns[ann_id]["spacy"])
+        # Run DINO
+        detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
+        dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+        print(f'DINO Time Taken: {time.time() - start}')
 
-            if use_searchwords:
-                joint_words = blip2_words.union(search_words)
-            else:
-                joint_words = blip2_words
-
-            CLASSES = []
-            for word in joint_words:
-                if word not in forbidden_classes:
-                    CLASSES.append(word)
-
-            # add DINO
-            detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
-            dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
-            print(f'DINO Time Taken: {time.time() - start}')
-
-            # add SAM
-            masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
-            metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
-            print(f'SAM Total Time Taken: {time.time() - start}')
-
-    return metadata
+        # Run SAM
+        masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
+        metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
+        print(f'SAM Total Time Taken: {time.time() - start}')
+  return metadata

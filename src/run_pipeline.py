@@ -39,7 +39,7 @@ mask_predictor = SamPredictor(sam)
 # SPACY_MODEL = os.environ['SPACY_MODEL']
 # spacy_nlp = spacy.load(SPACY_MODEL)
 
-file = '/me/public_validation_set_release_2.1.json'
+metadata_path = '/me/public_validation_set_release_2.1.json'
 img_dir = '/me/images'
 mask_dir = '/me/masks'
 if not os.path.exists(img_dir):
@@ -56,12 +56,18 @@ if not os.path.exists(mask_dir):
     os.makedirs(mask_dir)
 embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
 
+"""
+'mod_class' = use modded class names from embeddings
+'blip2' = use blip2/spacy
+"""
+word_type = 'mod_class'
+
 # new_metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
 
 """
 if testing is true, only get captions for 3 categories
 """
-new_metadata = get_boxes_and_mask(img_dir, mask_dir, file, grounding_dino_model, mask_predictor,
+new_metadata = get_boxes_and_mask(img_dir, mask_dir, metadata_path, word_type, grounding_dino_model, mask_predictor,
                                   use_searchwords=False, testing=True)
 
 new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
