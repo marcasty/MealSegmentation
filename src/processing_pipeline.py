@@ -48,15 +48,21 @@ def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thr
                 text_threshold=text_thresh)
     return detections
 
-
 def run_sam(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
     bounding_boxes = detections.xyxy
     detected_classes = detections.class_id
     masks_list = []
     mask_confidence_list = []
+
+    if None in detected_classes:
+        CLASSES.append('object_outside_class')
+        detected_classes = [i if i is not None else len(CLASSES) - 1 for i in detected_classes]
+        print('WARNING: DINO detected object(s) outside the class list')  
+    class_list = [CLASSES[i] for i in detected_classes]
+    print(f'Detected Classes are : {class_list}')
+    
     for i, _ in enumerate(detections):
-        print(f'Detected Classes are : {CLASSES[detected_classes[i]]}')
         DINO_box = bounding_boxes[i]
         masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
         best_mask_idx = np.argmax(scores)
@@ -96,9 +102,8 @@ def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, emb
     return metadata
 
 
-def get_boxes_and_mask(img_dir, mask_dir, metadata_path, word_type, 
+def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, 
                        grounding_dino_model, mask_predictor, use_search_words = False, testing = True):
-  metadata = FoodMetadata(metadata_path)
   
   count = 0
   for cat_id, _ in metadata.cats.items():
@@ -136,14 +141,13 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata_path, word_type,
                              'spoon', 'spoons', 'cup', 'cups']
 
         CLASSES = [word for word in classes if word not in forbidden_classes]
-
         # Run DINO
         detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
         dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
         print(f'DINO Time Taken: {time.time() - start}')
 
         # Run SAM
-        masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
+        masks_list, mask_confidence_list = run_sam2(image_rgb, CLASSES, detections, mask_predictor)
         metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
         print(f'SAM Total Time Taken: {time.time() - start}')
-  return metadata
+  return dino_ann_ids
