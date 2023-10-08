@@ -147,7 +147,7 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
         print(f'DINO Time Taken: {time.time() - start}')
 
         # Run SAM
-        masks_list, mask_confidence_list = run_sam2(image_rgb, CLASSES, detections, mask_predictor)
+        masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
         metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
         print(f'SAM Total Time Taken: {time.time() - start}')
   return dino_ann_ids
