@@ -73,14 +73,15 @@ def run_sam(image_rgb, CLASSES, detections, mask_predictor):
 
 def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, embedding_vars=None, testing=False):
     # read in metadata
-    metadata = FoodMetadata(data_file)
+    metadata = FoodMetadata(data_file, pred = True)
     category_ids = metadata.loadCats(metadata.getCatIds())
     category_names = [_["name_readable"] for _ in category_ids]
     count = 0
     for cat_name in category_names:
+        print(cat_name)
+        start = time.time()
         count += 1
-        if count < 3 and testing is True:
-            start = time.time()
+        if count > 3 and testing is True: return metadata
 
         catIds = metadata.getCatIds([cat_name])
         if len(catIds) == 0: continue
@@ -94,7 +95,7 @@ def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, emb
             metadata.add_blip2_annot(img["id"], blip2_text)
             metadata.add_spacy_annot(img["id"], spacy_words)
 
-        print(f'Time Taken: {time.time() - start}')
+    print(f'Time Taken: {time.time() - start}')
 
     if embedding_vars is not None:
         assign_classes(metadata, category_names, embedding_vars)

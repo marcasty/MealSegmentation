@@ -241,13 +241,13 @@ class FoodMetadata(COCO):
         # inverse the index
         categories, images, annotations = [], [], []
 
-        for _, cat in self.cats:
+        for _, cat in self.cats.items():
             categories.append(cat)
         
-        for _, img in self.imgs:
+        for _, img in self.imgs.items():
             images.append(img)
         
-        for _, ann in self.anns:
+        for _, ann in self.anns.items():
             annotations.append(ann)
         
         self.dataset['categories'] = categories
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     prediction = FoodMetadata('public_validation_set_release_2.1.json', pred=True)
 
     # export metadata to json file
-    coco.export_coco(new_file_name='data.json')
+    val_data.export_coco(new_file_name='data.json')
 
     """
     there are multiple annotations per image
