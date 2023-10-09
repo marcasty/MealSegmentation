@@ -24,18 +24,28 @@ os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "MobileSAM/weights/mobile
 
 GROUNDING_DINO_CONFIG_PATH = os.environ['GROUNDING_DINO_CONFIG_PATH']
 GROUNDING_DINO_CHECKPOINT_PATH = os.environ['GROUNDING_DINO_CHECKPOINT_PATH']
-grounding_dino_model = DINOModel(model_config_path=GROUNDING_DINO_CONFIG_PATH, model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH)
+# grounding_dino_model = DINOModel(model_config_path=GROUNDING_DINO_CONFIG_PATH, model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH)
 
 SAM_ENCODER_VERSION = os.environ['SAM_ENCODER_VERSION']
 SAM_CHECKPOINT_PATH = os.environ['SAM_CHECKPOINT_PATH']
 sam = sam_model_registry[SAM_ENCODER_VERSION](checkpoint=SAM_CHECKPOINT_PATH).to(device=DEVICE)
 sam.eval()
 mask_predictor = SamPredictor(sam)
+mask_generator = SamAutomaticMaskGenerator(
+                                    model=sam,
+                                    points_per_side=8,
+                                    pred_iou_thresh=0.90,
+                                    stability_score_thresh=0.95,
+                                    box_nms_thresh=0.7,
+                                    crop_n_layers=0,
+                                    crop_n_points_downscale_factor=1,
+                                    min_mask_region_area=200,  # Requires open-cv to run post-processing
+                                )
 
-# BLIP2_MODEL = os.environ['BLIP2_MODEL']
-# blip_processor = AutoProcessor.from_pretrained(BLIP2_MODEL)
-# blip2_model = Blip2ForConditionalGeneration.from_pretrained(BLIP2_MODEL, torch_dtype=torch.float16).to(DEVICE)
-# blip2_model.eval()
+BLIP2_MODEL = os.environ['BLIP2_MODEL']
+blip_processor = AutoProcessor.from_pretrained(BLIP2_MODEL)
+blip2_model = Blip2ForConditionalGeneration.from_pretrained(BLIP2_MODEL, torch_dtype=torch.float16).to(DEVICE)
+blip2_model.eval()
 # SPACY_MODEL = os.environ['SPACY_MODEL']
 # spacy_nlp = spacy.load(SPACY_MODEL)
 
@@ -56,6 +66,9 @@ if not os.path.exists(mask_dir):
     os.makedirs(mask_dir)
 embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
 
+
+get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor)
+
 """
 'mod_class' = use modded class names from embeddings
 'blip2' = use blip2/spacy
@@ -68,7 +81,7 @@ word_type = 'mod_class'
 if testing is true, only get captions for 3 categories
 """
 metadata = FoodMetadata(metadata_path)
-new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
-                                            use_search_words=False, testing=True)
+# new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
+#                                             use_search_words=False, testing=True)
 
-new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
+# new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
