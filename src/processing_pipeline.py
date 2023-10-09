@@ -91,27 +91,28 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     return masks_list, mask_confidence_list    
 
 def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
-    # read in metadata
-    category_ids = metadata.loadCats(metadata.getCatIds())
-    category_names = [_["name_readable"] for _ in category_ids]
     count = 0
-    for cat_name in category_names:
-        print(cat_name)
+    for cat_id, cat in metadata.cats.items():
         start = time.time()
         count += 1
         if count > 3 and testing is True: return metadata
+        
+        print(f'category {count} / 323: {cat["name_readable"]}')
 
-        catIds = metadata.getCatIds([cat_name])
-        if len(catIds) == 0: continue
-        imgIds = metadata.getImgIds(catIds=catIds)
-        if len(imgIds) == 0: continue
-        imgs = metadata.loadImgs(imgIds)
+        imgIds = metadata.getImgIds(catIds=cat_id)
+        if len(imgIds) == 0: 
+           continue
+        else:
+            imgs = metadata.loadImgs(imgIds)
 
         for img in imgs:
-            blip2_text = run_blip(blip_processor, blip2_model, f'{img_dir}/{img["file_name"]}')
-            spacy_words = set(get_hotwords(spacy_nlp, blip2_text))
-            metadata.add_blip2_annot(img["id"], blip2_text)
-            metadata.add_spacy_annot(img["id"], spacy_words)
+            spacy_words = {}
+            while len(spacy_words) == 0:
+                blip2_text = run_blip(blip_processor, blip2_model, f'{img_dir}/{img["file_name"]}')
+                spacy_words = set(get_hotwords(spacy_nlp, blip2_text))
+            ann_id = metadata.add_annotation(img["id"], cat_id)
+            metadata.add_blip2_annot(ann_id, img["id"], blip2_text)
+            metadata.add_spacy_annot(ann_id, img["id"], spacy_words)
 
     print(f'Time Taken: {time.time() - start}')
 
