@@ -178,30 +178,34 @@ class FoodMetadata(COCO):
         self.update_imgToAnns(ann_id, image_id, "class_from_embd", classes)
 
     # adds dino annotations
-    def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
-        dino_ann_ids = []
+    def add_dino_annot(self, ann_id, image_id, classes, class_ids, boxes, box_confidence):
+        dino_ann_ids = [ann_id]
 
-        # craft a new annotation
-        new_annotation = self.anns[ann_id]
-        new_annotation["num_objects"] = len(boxes)
-        new_annotation["classes"] = classes
+        self.anns[ann_id]["num_objects"] = len(boxes)
+        self.update_imgToAnns(ann_id, image_id, "num_objects", len(boxes))
+        self.anns[ann_id]["classes"] = classes
+        self.update_imgToAnns(ann_id, image_id, "classes", classes)
+
         for i in range(0, len(boxes)):
-            new_annotation["class_ids"] = class_ids[i]
-            new_annotation["bbox"] = boxes[i]
-            new_annotation["box_confidence"] = box_confidence[i]
-
             if 'bbox' not in self.anns[ann_id]:
-                self.anns[ann_id] = new_annotation
-                self.imgToAnns[img_id] = new_annotation
+                self.anns[ann_id]["class_ids"] = class_ids[i]
+                self.update_imgToAnns(ann_id, image_id, "class_ids", class_ids[i])
+                self.anns[ann_id]["bbox"] = boxes[i]
+                self.update_imgToAnns(ann_id, image_id, "bbox", boxes[i])
+                self.anns[ann_id]["box_confidence"] = box_confidence[i]
+                self.update_imgToAnns(ann_id, image_id, "box_confidence", box_confidence[i])
 
-            # if this is not the first box saved to an image, add new annotation
             else:
+                new_annotation = self.anns[ann_id]
                 id = self.next_ann_id()
-                new_annotation["id"] = id
-                self.anns[id] = new_annotation
-                self.imgToAnns[img_id].append(new_annotation)
-
-            dino_ann_ids.append(ann_id)
+                new_annotation['id'] = id
+                self.anns[id]["class_ids"] = class_ids[i]
+                self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
+                self.anns[id]["bbox"] = boxes[i]
+                self.update_imgToAnns(id, image_id, "bbox", boxes[i])
+                self.anns[id]["box_confidence"] = box_confidence[i]
+                self.update_imgToAnns(id, image_id, "box_confidence", box_confidence[i])
+                dino_ann_ids.append(id)
 
         return dino_ann_ids
 

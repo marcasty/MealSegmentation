@@ -137,7 +137,8 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
         image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-        ann_id = metadata.imgToAnns[img_id][0]['id']
+        for ann in metadata.imgToAnns[img_id]:
+           if ann['category_id'] == cat_id: ann_id = ann['id']
         
         # get words to pass to DINO
         if word_type == 'mod_class':
@@ -160,7 +161,7 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
         # Run DINO
         start = time.time()
         detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
-        dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+        dino_ann_ids = metadata.add_dino_annot(ann_id, img_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
         dino_ann_ids_list.append(dino_ann_ids)
         print(f'DINO Time Taken: {time.time() - start}')
 
