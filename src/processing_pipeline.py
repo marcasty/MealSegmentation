@@ -90,7 +90,7 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
         mask_confidence_list.append(scores[best_mask_idx])
     return masks_list, mask_confidence_list    
 
-def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, embedding_vars=None, testing=False):
+def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, testing=False):
     # read in metadata
     metadata = FoodMetadata(data_file, pred = True)
     category_ids = metadata.loadCats(metadata.getCatIds())
