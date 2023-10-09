@@ -116,7 +116,7 @@ def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, test
                 attempt += 1
                 if attempt > 5:
                   blip2_text = 'FAILURE' 
-                  spacy_words = ' '.join(cat["name_readable"].split('_'))
+                  spacy_words = set(cat["name_readable"].split('_'))
             
             ann_id = metadata.add_annotation(img["id"], cat_id)
             metadata.add_blip2_annot(ann_id, img["id"], blip2_text)
