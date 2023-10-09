@@ -30,7 +30,7 @@ def run_blip(blip_processor, blip2_model, path):
     """given image path, produce text"""
     image_bgr = cv2.imread(path)
     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    prompt = "the food or foods in this image include"
+    prompt = "the food or foods in this image include: "
     inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
     generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
     generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
@@ -92,8 +92,9 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
 
 def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
     count = 0
+    start = time.time()
     for cat_id, cat in metadata.cats.items():
-        start = time.time()
+        
         count += 1
         if count > 3 and testing is True: return metadata
         
@@ -106,10 +107,17 @@ def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, test
             imgs = metadata.loadImgs(imgIds)
 
         for img in imgs:
+            # sometimes blip2 does not output anything useful
             spacy_words = {}
+            attempt = 0
             while len(spacy_words) == 0:
                 blip2_text = run_blip(blip_processor, blip2_model, f'{img_dir}/{img["file_name"]}')
                 spacy_words = set(get_hotwords(spacy_nlp, blip2_text))
+                attempt += 1
+                if attempt > 5:
+                  blip2_text = 'FAILURE' 
+                  spacy_words = ' '.join(cat["name_readable"].split('_'))
+            
             ann_id = metadata.add_annotation(img["id"], cat_id)
             metadata.add_blip2_annot(ann_id, img["id"], blip2_text)
             metadata.add_spacy_annot(ann_id, img["id"], spacy_words)
