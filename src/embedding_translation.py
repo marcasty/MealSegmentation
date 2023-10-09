@@ -21,7 +21,7 @@ def download_glove(model_dir):
     if not os.path.exists(f'{model_dir}/glove.6B.zip'):
         print('Downloading GloVe')
         urllib.request.urlretrieve('https://nlp.stanford.edu/data/glove.6B.zip', f'{model_dir}/glove.6B.zip')
-    if not os.path.exists('f{model_dir}/glove.6B.200d.txt'):
+    if not os.path.exists(f'{model_dir}/glove.6B.200d.txt'):
         print('Unzipping GloVe')
         with zipfile.ZipFile(f'{model_dir}/glove.6B.zip', 'r') as zip_ref:
             zip_ref.extractall(f'{model_dir}')
@@ -42,8 +42,10 @@ def get_average_embedding(embed_dict, sentence):
     words = sentence.split()
 
     # skip categories that don't appear in validation set
-    if words[0][0] == '$': return []
-
+    try:
+      if words[0][0] == '$': return []
+    except:
+      print(sentence)
     vectors = []
     for word in words:
         try:
@@ -52,9 +54,9 @@ def get_average_embedding(embed_dict, sentence):
             print(f"Warning: Word '{word}' not found in embeddings.")
         continue
     if not vectors:
-        print(f"Warning: No valid embeddings found in sentence: {sentence}")     
+        print(f"Warning: No valid embeddings found in sentence: {sentence}")
+        return 0     
     return np.mean(vectors, axis=0)
-
 
 def find_similar_word(spacy_dict, cat_dict):
     """
@@ -76,7 +78,6 @@ def assign_classes(metadata, embedding_vars):
 
     category_ids = metadata.loadCats(metadata.getCatIds())
     category_names = [_["name_readable"] for _ in category_ids]
-
     if embedding_vars[0] == "GloVe":
         embed_dict = download_glove(embedding_vars[1])
 
@@ -100,13 +101,17 @@ def assign_classes(metadata, embedding_vars):
         words = ann["spacy"]
         spacy_dict = {}
         for word in words:
-            spacy_dict[word] = get_average_embedding(embed_dict, word)
+            embd = get_average_embedding(embed_dict, word)
+            if not isinstance(embd, np.ndarray):
+              print(f'word {word} in set {words} is not in embed dict')
+            else: 
+              spacy_dict[word] = embd
+        if len(spacy_dict) == 0: print('Warning: no modified class name assigned')
         # add the nearest modified classes and the associated classes to json
         mod_classes = find_similar_word(spacy_dict, embedded_cats_dict)
         classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
         metadata.add_class_from_embd(ann_id, mod_classes, classes)
     return metadata
-
 if __name__ == '__main__':
     HOME = 'C:/Users/marka/fun'
     HOME = '/me'
