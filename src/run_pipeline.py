@@ -62,12 +62,14 @@ embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
 """
 word_type = 'mod_class'
 
-# new_metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
+#metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
+metadata = FoodMetadata(metadata_path)
+if embedding_vars is not None:
+    assign_classes(metadata, embedding_vars)
 
 """
 if testing is true, only get captions for 3 categories
 """
-metadata = FoodMetadata(metadata_path)
 new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
                                   use_searchwords=False, testing=True)
 

@@ -157,7 +157,7 @@ class FoodMetadata(COCO):
         ann_id = self.add_annotation(image_id)
 
         self.anns[ann_id]["blip2"] = text
-        self.imgToAnns[image_id]["blip2"] = text
+        self.imgToAnns[image_id][0]["blip2"] = text
 
     def add_spacy_annot(self, image_id, words):
         """add spacy results"""
@@ -275,9 +275,10 @@ if __name__ == '__main__':
 
     # if you want to make new predictions on the data, set pred=True
     prediction = FoodMetadata('public_validation_set_release_2.1.json', pred=True)
-
+    print(prediction.dataset['images'][0])
+    print(prediction.dataset['annotations'])
     # export metadata to json file
-    val_data.export_coco(new_file_name='data.json')
+    #val_data.export_coco(new_file_name='data.json')
 
     """
     there are multiple annotations per image
