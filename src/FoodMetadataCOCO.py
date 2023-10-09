@@ -133,80 +133,79 @@ class FoodMetadata(COCO):
         return len(self.anns)
     
     def next_ann_id(self):
-        return max(self.anns.keys()) + 1
+        if self.get_num_annotations() == 0: return 1
+        else: return max(self.anns.keys()) + 1
     
-    def add_annotation(self, image_id):
-        """initializes new id"""
-        if self.get_num_annotations() > 0:
-            ann_id = self.next_ann_id()
-        else:
-            ann_id = 1
+    def update_imgToAnns(self, ann_id, image_id, key, value):
+        for ann in self.imgToAnns[image_id]:
+            if ann['id'] == ann_id:
+                ann[key] = value
 
+    def add_annotation(self, image_id, cat_id):
+        """initializes new id"""
+        ann_id = self.next_ann_id()
+        
         new_annotation = {
             "id": ann_id,
             "image_id": image_id,
-            "category_id": self.imgToCat(image_id),
+            "category_id": cat_id,
         }
         self.anns[ann_id] = new_annotation
         self.imgToAnns[image_id].append(new_annotation)
         return ann_id
 
-    def add_blip2_annot(self, image_id, text):
+    def add_blip2_annot(self, ann_id, image_id, text):
         """add blip2 results"""
 
-        ann_id = self.add_annotation(image_id)
-
         self.anns[ann_id]["blip2"] = text
-        self.imgToAnns[image_id][0]["blip2"] = text
+        self.update_imgToAnns(ann_id, image_id, "blip2", text)
 
-    def add_spacy_annot(self, image_id, words):
+    def add_spacy_annot(self, ann_id, image_id, words):
         """add spacy results"""
-        
-        # add spacy to annotation
-        ann_id = self.imgToAnns[image_id][0]['id']
 
         self.anns[ann_id]["spacy"] = words
-        self.imgToAnns[image_id][0]["spacy"] = words
+        self.update_imgToAnns(ann_id, image_id, "spacy", words)
+
 
     def add_class_from_embd(self, ann_id, mod_classes, classes):
         """add class name nearest to blip/spacy output"""
-
-        image_id = self.anns[ann_id]["image_id"]
         
-        # add classes from embedding to annotation
-        new_annotation = self.anns[ann_id]
-        new_annotation["mod_class_from_embd"] = mod_classes
-        new_annotation["class_from_embd"] = classes
+        image_id = self.anns[ann_id]["image_id"]
 
-        # replace old annotation with updated version
-        self.anns[ann_id] = new_annotation
-        self.imgToAnns[image_id][0] = new_annotation
+        self.anns[ann_id]["mod_class_from_embd"] = mod_classes
+        self.update_imgToAnns(ann_id, image_id, "mod_class_from_embd", mod_classes)
+        self.anns[ann_id]["class_from_embd"] = classes
+        self.update_imgToAnns(ann_id, image_id, "class_from_embd", classes)
 
     # adds dino annotations
-    def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
-        dino_ann_ids = []
+    def add_dino_annot(self, ann_id, image_id, classes, class_ids, boxes, box_confidence):
+        dino_ann_ids = [ann_id]
 
-        # craft a new annotation
-        new_annotation = self.anns[ann_id]
-        new_annotation["num_objects"] = len(boxes)
-        new_annotation["classes"] = classes
+        self.anns[ann_id]["num_objects"] = len(boxes)
+        self.update_imgToAnns(ann_id, image_id, "num_objects", len(boxes))
+        self.anns[ann_id]["classes"] = classes
+        self.update_imgToAnns(ann_id, image_id, "classes", classes)
+
         for i in range(0, len(boxes)):
-            new_annotation["class_ids"] = class_ids[i]
-            new_annotation["bbox"] = boxes[i]
-            new_annotation["box_confidence"] = box_confidence[i]
-
             if 'bbox' not in self.anns[ann_id]:
-                self.anns[ann_id] = new_annotation
-                self.imgToAnns[img_id] = new_annotation
+                self.anns[ann_id]["class_ids"] = class_ids[i]
+                self.update_imgToAnns(ann_id, image_id, "class_ids", class_ids[i])
+                self.anns[ann_id]["bbox"] = boxes[i]
+                self.update_imgToAnns(ann_id, image_id, "bbox", boxes[i])
+                self.anns[ann_id]["box_confidence"] = box_confidence[i]
+                self.update_imgToAnns(ann_id, image_id, "box_confidence", box_confidence[i])
 
-            # if this is not the first box saved to an image, add new annotation
             else:
+                new_annotation = self.anns[ann_id]
                 id = self.next_ann_id()
-                new_annotation["id"] = id
-                self.anns[id] = new_annotation
-                self.imgToAnns[img_id].append(new_annotation)
-
-            dino_ann_ids.append(ann_id)
+                new_annotation['id'] = id
+                self.anns[id]["class_ids"] = class_ids[i]
+                self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
+                self.anns[id]["bbox"] = boxes[i]
+                self.update_imgToAnns(id, image_id, "bbox", boxes[i])
+                self.anns[id]["box_confidence"] = box_confidence[i]
+                self.update_imgToAnns(id, image_id, "box_confidence", box_confidence[i])
+                dino_ann_ids.append(id)
 
         return dino_ann_ids
 
@@ -218,12 +217,6 @@ class FoodMetadata(COCO):
             torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
             self.anns[ann_id]['masks'] = mask_id
             self.anns[ann_id]['mask_confidence'] = arr_mask_score[i]
-
-    def id_to_idx(self, id):
-        for index, dictionary in enumerate(self.dataset['annotations']):
-            if dictionary.get("id") == id:
-                return index
-        return -1  # Return -1 if the 'id' is not found in any dictionary in the list
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
@@ -283,5 +276,6 @@ if __name__ == '__main__':
     """
     there are multiple annotations per image
     there are multiple images per category
+    some images have multiple categories
     .catToImgs and imgToAnns are dicts in FoodMetadata class to keep track of this
     """
