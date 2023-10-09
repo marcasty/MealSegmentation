@@ -78,7 +78,7 @@ word_type = 'mod_class'
 #metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
 metadata = FoodMetadata(metadata_path)
 if embedding_vars is not None:
-    assign_classes(metadata, embedding_vars)
+    metadata = assign_classes(metadata, embedding_vars)
 
 """
 if testing is true, only get captions for 3 categories

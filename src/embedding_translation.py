@@ -105,7 +105,7 @@ def assign_classes(metadata, embedding_vars):
         mod_classes = find_similar_word(spacy_dict, embedded_cats_dict)
         classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
         metadata.add_class_from_embd(ann_id, mod_classes, classes)
-
+    return metadata
 
 if __name__ == '__main__':
     HOME = 'C:/Users/marka/fun'
