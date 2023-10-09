@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import defaultdict
 from pycocotools.coco import COCO
 from typing import List
 import json
@@ -51,8 +52,8 @@ class FoodMetadata(COCO):
                 self.dataset['annotations'] = []
                 for img_id, _ in self.imgs.items():
                     self.imgToAnns[img_id] = []
-            info["description"] = "Segmented Food Predictions"
-            self.dataset['info'] = info
+                info["description"] = "Segmented Food Predictions"
+                self.dataset['info'] = info
 
     def get_num_categories(self):
         """how many categories (foods) are in this dataset?"""
@@ -101,8 +102,9 @@ class FoodMetadata(COCO):
 
     def add_image_data(self, filename: str, width, height, cat_id, query: str = None):
         """add an image to the coco json file"""
+
         if self.get_num_images() > 0:
-            id = self.dataset['images'][-1]["id"] + 1
+            id = max(self.imgs.keys()) + 1
         else:
             id = 1
         new_image = {"id": id,
@@ -117,58 +119,54 @@ class FoodMetadata(COCO):
         if query is not None:
             new_image["Google Search Query"]: query
 
-        self.dataset["images"].append(new_image)
         self.imgs[id] = new_image
         self.catToImgs[cat_id].append(id)
         self.imgToAnns[id] = []
-
-    def get_num_annotations(self): 
-        """return number of annotations"""
-        return len(self.anns)
 
     def imgToCat(self, img_id):
         for cat, img_list in self.catToImgs.items():
             if img_id in img_list:
                 return cat
 
+    def get_num_annotations(self): 
+        """return number of annotations"""
+        return len(self.anns)
+    
+    def next_ann_id(self):
+        return max(self.anns.keys()) + 1
+    
     def add_annotation(self, image_id):
         """initializes new id"""
         if self.get_num_annotations() > 0:
-            id = self.dataset['annotations'][-1]["id"] + 1
+            ann_id = self.next_ann_id()
         else:
-            id = 1
+            ann_id = 1
 
         new_annotation = {
-            "id": id,
+            "id": ann_id,
             "image_id": image_id,
             "category_id": self.imgToCat(image_id),
         }
-        self.dataset["annotations"].append(new_annotation)
-        self.anns[id] = new_annotation
+        self.anns[ann_id] = new_annotation
         self.imgToAnns[image_id].append(new_annotation)
+        return ann_id
 
     def add_blip2_annot(self, image_id, text):
         """add blip2 results"""
 
-        # initialize annotation
-        self.add_annotation(image_id)
+        ann_id = self.add_annotation(image_id)
 
-        self.dataset["annotations"][-1]["blip2"] = text
-        id = self.dataset["annotations"][-1]["id"]
-        self.anns[id]["blip2"] = text
+        self.anns[ann_id]["blip2"] = text
+        self.imgToAnns[image_id]["blip2"] = text
 
     def add_spacy_annot(self, image_id, words):
         """add spacy results"""
         
         # add spacy to annotation
-        ann_id = self.imgToAnns[0][image_id]
-        new_annotation = self.anns[ann_id]
-        new_annotation["spacy"] = words
+        ann_id = self.imgToAnns[image_id][0]['id']
 
-        # replace old annotation with updated version
-        self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
-        self.anns[ann_id] = new_annotation
-        self.imgToAnns[image_id][0] = new_annotation
+        self.anns[ann_id]["spacy"] = words
+        self.imgToAnns[image_id][0]["spacy"] = words
 
     def add_class_from_embd(self, ann_id, mod_classes, classes):
         """add class name nearest to blip/spacy output"""
@@ -181,7 +179,6 @@ class FoodMetadata(COCO):
         new_annotation["class_from_embd"] = classes
 
         # replace old annotation with updated version
-        self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
         self.anns[ann_id] = new_annotation
         self.imgToAnns[image_id][0] = new_annotation
 
@@ -198,22 +195,18 @@ class FoodMetadata(COCO):
             new_annotation["bbox"] = boxes[i]
             new_annotation["box_confidence"] = box_confidence[i]
 
-            # if this is not the first box saved to an image, add new annotation
-            if 'bbox' in self.anns[ann_id]:
-                # update id info
-                id = self.dataset['annotations'][-1]['id'] + 1
-                new_annotation["id"] = id
-                # add new annotation
-                self.dataset['annotations'].append(new_annotation)
-                self.anns[id] = new_annotation
-                self.imgToAnns[img_id].append(id)
-                dino_ann_ids.append(id)
-
-            # if this is first box saved to image, update first instance of annotation
-            else:
-                self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
+            if 'bbox' not in self.anns[ann_id]:
                 self.anns[ann_id] = new_annotation
-                dino_ann_ids.append(ann_id)
+                self.imgToAnns[img_id] = new_annotation
+
+            # if this is not the first box saved to an image, add new annotation
+            else:
+                id = self.next_ann_id()
+                new_annotation["id"] = id
+                self.anns[id] = new_annotation
+                self.imgToAnns[img_id].append(new_annotation)
+
+            dino_ann_ids.append(ann_id)
 
         return dino_ann_ids
 
@@ -223,8 +216,6 @@ class FoodMetadata(COCO):
             mask_id = f'{image_id}_{ann_id}.pt'
             mask_filepath = os.path.join(directory, mask_id)
             torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
-            self.dataset['annotations'][self.id_to_idx(ann_id)]['masks'] = mask_id
-            self.dataset['annotations'][self.id_to_idx(ann_id)]['mask_confidence'] = arr_mask_score[i]
             self.anns[ann_id]['masks'] = mask_id
             self.anns[ann_id]['mask_confidence'] = arr_mask_score[i]
 
@@ -246,6 +237,22 @@ class FoodMetadata(COCO):
                 file_name = f"metadata_{current_datetime}.json"
         else:
             file_name = new_file_name
+        
+        # inverse the index
+        categories, images, annotations = [], [], []
+
+        for _, cat in self.cats:
+            categories.append(cat)
+        
+        for _, img in self.imgs:
+            images.append(img)
+        
+        for _, ann in self.anns:
+            annotations.append(ann)
+        
+        self.dataset['categories'] = categories
+        self.dataset['images'] = images
+        self.dataset['annotations'] = annotations
 
         with open(file_name, "w") as json_file:
             json.dump(self.dataset, json_file, indent=4, cls=NpEncoder)
