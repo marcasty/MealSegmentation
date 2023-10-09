@@ -47,6 +47,7 @@ class FoodMetadata(COCO):
         else:
             if pred is True:
                 self.anns = {}
+                self.imgToAnns = {}
                 self.dataset['annotations'] = []
                 for img_id, _ in self.imgs.items():
                     self.imgToAnns[img_id] = []
@@ -144,10 +145,10 @@ class FoodMetadata(COCO):
         }
         self.dataset["annotations"].append(new_annotation)
         self.anns[id] = new_annotation
-        self.imgToAnns[image_id].append(id)
+        self.imgToAnns[image_id].append(new_annotation)
 
     def add_blip2_annot(self, image_id, text):
-        """add blip2 and spacy results"""
+        """add blip2 results"""
 
         # initialize annotation
         self.add_annotation(image_id)
@@ -157,21 +158,32 @@ class FoodMetadata(COCO):
         self.anns[id]["blip2"] = text
 
     def add_spacy_annot(self, image_id, words):
-        """add blip2 and spacy results"""
+        """add spacy results"""
+        
+        # add spacy to annotation
+        ann_id = self.imgToAnns[0][image_id]
+        new_annotation = self.anns[ann_id]
+        new_annotation["spacy"] = words
 
-        # initialize annotation
-        self.add_annotation(image_id)
-        self.dataset["annotations"][-1]["spacy"] = words
-        id = self.dataset["annotations"][-1]["id"]
-        self.anns[id]["spacy"] = words
+        # replace old annotation with updated version
+        self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
+        self.anns[ann_id] = new_annotation
+        self.imgToAnns[image_id][0] = new_annotation
 
     def add_class_from_embd(self, ann_id, mod_classes, classes):
         """add class name nearest to blip/spacy output"""
+
+        image_id = self.anns[ann_id]["image_id"]
+        
+        # add classes from embedding to annotation
         new_annotation = self.anns[ann_id]
         new_annotation["mod_class_from_embd"] = mod_classes
         new_annotation["class_from_embd"] = classes
+
+        # replace old annotation with updated version
         self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
         self.anns[ann_id] = new_annotation
+        self.imgToAnns[image_id][0] = new_annotation
 
     # adds dino annotations
     def add_dino_annot(self, img_id, ann_id, classes, class_ids, boxes, box_confidence):
