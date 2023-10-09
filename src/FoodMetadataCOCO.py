@@ -183,25 +183,25 @@ class FoodMetadata(COCO):
         new_annotation["classes"] = classes
         for i in range(0, len(boxes)):
             new_annotation["class_ids"] = class_ids[i]
-            new_annotation["xyxy_boxes"] = boxes[i]
+            new_annotation["bbox"] = boxes[i]
             new_annotation["box_confidence"] = box_confidence[i]
 
-            # if not first box saved to image, add new annotation
-            if 'xyxy_boxes' in self.anns[ann_id]:
+            # if this is not the first box saved to an image, add new annotation
+            if 'bbox' in self.anns[ann_id]:
                 # update id info
                 id = self.dataset['annotations'][-1]['id'] + 1
                 new_annotation["id"] = id
-                dino_ann_ids.append(id)
                 # add new annotation
                 self.dataset['annotations'].append(new_annotation)
                 self.anns[id] = new_annotation
                 self.imgToAnns[img_id].append(id)
+                dino_ann_ids.append(id)
 
             # if this is first box saved to image, update first instance of annotation
             else:
-                dino_ann_ids.append(ann_id)
                 self.dataset["annotations"][self.id_to_idx(ann_id)] = new_annotation
                 self.anns[ann_id] = new_annotation
+                dino_ann_ids.append(ann_id)
 
         return dino_ann_ids
 
@@ -213,8 +213,8 @@ class FoodMetadata(COCO):
             torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
             self.dataset['annotations'][self.id_to_idx(ann_id)]['masks'] = mask_id
             self.dataset['annotations'][self.id_to_idx(ann_id)]['mask_confidence'] = arr_mask_score[i]
-            self.anns['masks'] = mask_id
-            self.anns['mask_confidence'] = arr_mask_score[i]
+            self.anns[ann_id]['masks'] = mask_id
+            self.anns[ann_id]['mask_confidence'] = arr_mask_score[i]
 
     def id_to_idx(self, id):
         for index, dictionary in enumerate(self.dataset['annotations']):

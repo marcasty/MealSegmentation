@@ -104,12 +104,12 @@ def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, emb
 
 def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, 
                        grounding_dino_model, mask_predictor, use_search_words = False, testing = True):
-  
+  dino_ann_ids_list = []
   count = 0
   for cat_id, _ in metadata.cats.items():
     count += 1
     if count > 2 and testing is True:
-      return metadata
+      return metadata, dino_ann_ids_list
     else:
       start = time.time()
       imgIds = metadata.getImgIds(catIds=cat_id)
@@ -128,7 +128,7 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
           try:
             classes = set(metadata.anns[ann_id]['mod_class_from_embd'])
           except:
-            print(ann_id)
+            print(f'Annotation {ann_id} does not contain words')
             return -1
         elif word_type == 'blip2':
           classes = set(metadata.anns[ann_id]['spacy'])
@@ -144,10 +144,12 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
         # Run DINO
         detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
         dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+        dino_ann_ids_list.append(dino_ann_ids)
         print(f'DINO Time Taken: {time.time() - start}')
 
         # Run SAM
         masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
         metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
         print(f'SAM Total Time Taken: {time.time() - start}')
-  return dino_ann_ids
+  return metadata, dino_ann_ids_list
+
