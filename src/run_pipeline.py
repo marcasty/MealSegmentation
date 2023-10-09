@@ -24,7 +24,7 @@ os.environ['SAM_CHECKPOINT_PATH'] = os.path.join(HOME, "MobileSAM/weights/mobile
 
 GROUNDING_DINO_CONFIG_PATH = os.environ['GROUNDING_DINO_CONFIG_PATH']
 GROUNDING_DINO_CHECKPOINT_PATH = os.environ['GROUNDING_DINO_CHECKPOINT_PATH']
-# grounding_dino_model = DINOModel(model_config_path=GROUNDING_DINO_CONFIG_PATH, model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH)
+grounding_dino_model = DINOModel(model_config_path=GROUNDING_DINO_CONFIG_PATH, model_checkpoint_path=GROUNDING_DINO_CHECKPOINT_PATH)
 
 SAM_ENCODER_VERSION = os.environ['SAM_ENCODER_VERSION']
 SAM_CHECKPOINT_PATH = os.environ['SAM_CHECKPOINT_PATH']
@@ -46,44 +46,43 @@ BLIP2_MODEL = os.environ['BLIP2_MODEL']
 blip_processor = AutoProcessor.from_pretrained(BLIP2_MODEL)
 blip2_model = Blip2ForConditionalGeneration.from_pretrained(BLIP2_MODEL, torch_dtype=torch.float16).to(DEVICE)
 blip2_model.eval()
-# SPACY_MODEL = os.environ['SPACY_MODEL']
-# spacy_nlp = spacy.load(SPACY_MODEL)
+SPACY_MODEL = os.environ['SPACY_MODEL']
+spacy_nlp = spacy.load(SPACY_MODEL)
 
 metadata_path = '/me/public_validation_set_release_2.1.json'
+metadata = FoodMetadata(metadata_path)
+
 img_dir = '/me/images'
-mask_dir = '/me/masks'
 if not os.path.exists(img_dir):
     os.makedirs(img_dir)
 
+mask_dir = '/me/masks'
 if not os.path.exists(mask_dir):
     os.makedirs(mask_dir)
 
+#get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor)
 
 embd_model_type = "GloVe"
 embd_model_dir = '/me/embedding_model'
 modded_cat_path = '/me/round2_categories_modified.txt'
-if not os.path.exists(mask_dir):
-    os.makedirs(mask_dir)
+if not os.path.exists(embd_model_dir):
+    os.makedirs(embd_model_dir)
 embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
 
+text_metadatametadata = get_keywords(img_dir, metadata, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
+if embedding_vars is not None:
+    metadata = assign_classes(metadata, embedding_vars)
 
-get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor)
-
+word_type = 'mod_class' 
 """
 'mod_class' = use modded class names from embeddings
 'blip2' = use blip2/spacy
 """
-word_type = 'mod_class'
 
-#metadata = get_keywords(img_dir, file, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
-metadata = FoodMetadata(metadata_path)
-if embedding_vars is not None:
-    metadata = assign_classes(metadata, embedding_vars)
-
+new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
+                                  use_searchwords=False, testing=True)
 """
 if testing is true, only get captions for 3 categories
 """
-new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
-                                  use_searchwords=False, testing=True)
 
 # new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
