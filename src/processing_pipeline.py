@@ -6,6 +6,8 @@ import torch
 from FoodMetadataCOCO import FoodMetadata
 from embedding_translation import assign_classes
 import time
+import matplotlib.pyplot as plt
+
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,9 +29,9 @@ def get_hotwords(spacy_nlp, text):
 def run_blip(blip_processor, blip2_model, path):
     """given image path, produce text"""
     image_bgr = cv2.imread(path)
-    image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     prompt = "the food or foods in this image include"
-    inputs = blip_processor(image, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
+    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
     generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
     generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
     generated_text = generated_text[0].strip()
@@ -48,7 +50,24 @@ def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thr
                 text_threshold=text_thresh)
     return detections
 
-def run_sam(image_rgb, CLASSES, detections, mask_predictor):
+
+def run_sam_full(image_rgb, mask_generator):
+    """given an image, generate masks automatically"""
+    masks = mask_generator.generate(image_rgb)
+    return masks
+
+
+def run_classifier(image_rgb, blip2_model, blip_processor):
+    """given rgb image, produce text"""
+    prompt = "the food or foods in this image include"
+    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
+    generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
+    generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
+    generated_text = generated_text[0].strip()
+    return generated_text
+
+
+def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
     bounding_boxes = detections.xyxy
     detected_classes = detections.class_id
@@ -71,7 +90,7 @@ def run_sam(image_rgb, CLASSES, detections, mask_predictor):
         mask_confidence_list.append(scores[best_mask_idx])
     return masks_list, mask_confidence_list    
 
-def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, embedding_vars=None, testing=True):
+def get_keywords(img_dir, data_file, spacy_nlp, blip_processor, blip2_model, embedding_vars=None, testing=False):
     # read in metadata
     metadata = FoodMetadata(data_file, pred = True)
     category_ids = metadata.loadCats(metadata.getCatIds())
@@ -109,7 +128,6 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
     if count > 2 and testing is True:
       return metadata, dino_ann_ids_list
     else:
-      start = time.time()
       imgIds = metadata.getImgIds(catIds=cat_id)
 
       for img_id in imgIds:
@@ -140,14 +158,35 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
 
         CLASSES = [word for word in classes if word not in forbidden_classes]
         # Run DINO
+        start = time.time()
         detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
         dino_ann_ids = metadata.add_dino_annot(img_id, ann_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
         dino_ann_ids_list.append(dino_ann_ids)
         print(f'DINO Time Taken: {time.time() - start}')
 
         # Run SAM
-        masks_list, mask_confidence_list = run_sam(image_rgb, CLASSES, detections, mask_predictor)
+        start = time.time()
+        masks_list, mask_confidence_list = run_sam_box(image_rgb, CLASSES, detections, mask_predictor)
         metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
-        print(f'SAM Total Time Taken: {time.time() - start}')
+        print(f'SAM Time Taken: {time.time() - start}')
   return metadata, dino_ann_ids_list
 
+
+def get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor):
+    SOURCE_IMAGE_PATH = f'{img_dir}/{"miso-soup/miso-soup_00064.jpg"}'
+    image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+
+    anns = run_sam_full(image_rgb, mask_generator)
+    sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
+    img_full = np.ones((sorted_anns[0]['segmentation'].shape[0], sorted_anns[0]['segmentation'].shape[1], 4))
+    img_full[:, :, 3] = 0
+    for ann in sorted_anns:
+        img = np.zeros((sorted_anns[0]['segmentation'].shape[0], sorted_anns[0]['segmentation'].shape[1], 3))
+        m = ann['segmentation']
+        img[m] = image_rgb[m]
+        text = run_classifier(img, blip2_model, blip_processor)
+        print(f"Food is {text}")
+        color_mask = np.concatenate([np.random.random(3), [0.75]])
+        img_full[m] = color_mask
+    plt.imsave('test_v3.png', img_full)

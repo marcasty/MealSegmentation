@@ -1,4 +1,4 @@
 #!/bin/bash
 
-docker-compose -f config/docker-compose.yml down
+docker compose -f config/docker-compose.yml down
 
