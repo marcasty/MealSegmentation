@@ -69,6 +69,6 @@ if testing is true, only get captions for 3 categories
 """
 metadata = FoodMetadata(metadata_path)
 new_metadata, dino_ids = get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, grounding_dino_model, mask_predictor,
-                                  use_searchwords=False, testing=True)
+                                            use_search_words=False, testing=True)
 
 new_metadata.export_coco(new_file_name='../google_food101_10k_dedup_keywords_masks.json', replace=False)
