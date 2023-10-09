@@ -72,7 +72,10 @@ def find_similar_word(spacy_dict, cat_dict):
     return categories
 
 
-def assign_classes(metadata, category_names, embedding_vars):
+def assign_classes(metadata, embedding_vars):
+
+    category_ids = metadata.loadCats(metadata.getCatIds())
+    category_names = [_["name_readable"] for _ in category_ids]
 
     if embedding_vars[0] == "GloVe":
         embed_dict = download_glove(embedding_vars[1])
