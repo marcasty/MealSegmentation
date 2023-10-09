@@ -276,5 +276,6 @@ if __name__ == '__main__':
     """
     there are multiple annotations per image
     there are multiple images per category
+    some images have multiple categories
     .catToImgs and imgToAnns are dicts in FoodMetadata class to keep track of this
     """
