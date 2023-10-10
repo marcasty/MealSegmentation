@@ -199,12 +199,13 @@ class FoodMetadata(COCO):
                 new_annotation = self.anns[ann_id]
                 id = self.next_ann_id()
                 new_annotation['id'] = id
-                self.anns[id]["class_ids"] = class_ids[i]
+                new_annotation["class_ids"] = class_ids[i]
                 self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
-                self.anns[id]["bbox"] = boxes[i]
+                new_annotation["bbox"] = boxes[i]
                 self.update_imgToAnns(id, image_id, "bbox", boxes[i])
-                self.anns[id]["box_confidence"] = box_confidence[i]
+                new_annotation["box_confidence"] = box_confidence[i]
                 self.update_imgToAnns(id, image_id, "box_confidence", box_confidence[i])
+                self.anns[id] = new_annotation
                 dino_ann_ids.append(id)
 
         return dino_ann_ids
