@@ -66,7 +66,7 @@ def run_classifier(image_rgb, blip2_model, blip_processor):
     generated_text = generated_text[0].strip()
     return generated_text
 
-def run_sam_box2(image_rgb, CLASSES, detections, mask_predictor):
+def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
     bounding_boxes = detections.xyxy
     detected_classes = detections.class_id

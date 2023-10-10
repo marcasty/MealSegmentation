@@ -186,11 +186,11 @@ class FoodMetadata(COCO):
         self.anns[ann_id]["classes"] = classes
         self.update_imgToAnns(ann_id, image_id, "classes", classes)
 
-        for i in range(0, len(boxes)):
+        for i in range(len(boxes)):
             if 'bbox' not in self.anns[ann_id]:
                 self.anns[ann_id]["class_ids"] = class_ids[i]
                 self.update_imgToAnns(ann_id, image_id, "class_ids", class_ids[i])
-                self.anns[ann_id]["bbox"] = boxes[i]
+                self.anns[ann_id]["bbox"] = [int(num) for num in boxes[i]]
                 self.update_imgToAnns(ann_id, image_id, "bbox", boxes[i])
                 self.anns[ann_id]["box_confidence"] = box_confidence[i]
                 self.update_imgToAnns(ann_id, image_id, "box_confidence", box_confidence[i])
@@ -201,7 +201,7 @@ class FoodMetadata(COCO):
                 new_annotation['id'] = id
                 new_annotation["class_ids"] = class_ids[i]
                 self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
-                new_annotation["bbox"] = boxes[i]
+                new_annotation["bbox"] = [int(num) for num in boxes[i]]
                 self.update_imgToAnns(id, image_id, "bbox", boxes[i])
                 new_annotation["box_confidence"] = box_confidence[i]
                 self.update_imgToAnns(id, image_id, "box_confidence", box_confidence[i])
