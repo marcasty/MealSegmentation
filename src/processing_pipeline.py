@@ -66,7 +66,7 @@ def run_classifier(image_rgb, blip2_model, blip_processor):
     generated_text = generated_text[0].strip()
     return generated_text
 
-def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
+def run_sam_box2(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
     bounding_boxes = detections.xyxy
     detected_classes = detections.class_id
@@ -194,7 +194,7 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
 
         # Run SAM
         start = time.time()
-        masks_list, mask_confidence_list, outside_class, dino_success = run_sam_box2(image_rgb, CLASSES, detections, mask_predictor)
+        masks_list, mask_confidence_list, outside_class, dino_success = run_sam_box(image_rgb, CLASSES, detections, mask_predictor)
         if outside_class == 1: 
           status_report['outside_class'].append(ann_id)
         if dino_success == 0: 
