@@ -102,7 +102,7 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
       return masks_list, mask_confidence_list, dino_success
     
     else:
-      for i in len(bounding_boxes):
+      for i in range(len(bounding_boxes)):
           DINO_box = bounding_boxes[i]
           masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
           best_mask_idx = np.argmax(scores)
