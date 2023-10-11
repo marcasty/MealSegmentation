@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 from FoodMetadataCOCO import FoodMetadata
-from embedding_translation import assign_classes
+from text_to_embedding import assign_classes
 import time
 import matplotlib.pyplot as plt
 
@@ -52,19 +52,19 @@ def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thr
 
     # catch scenarios where DINO detects object out of classes
     class_ids = []
-    for detection in detections.class_id:
-        if detection is None:
+
+    for id in detections.class_id:
+        if id is None:
           CLASSES.append('object_outside_class')
           class_ids.append(len(CLASSES) - 1)
           print('WARNING: DINO detected object(s) outside the class list')
           outside_class = 1
-        else: class_ids.append(int(detection))
+        else: class_ids.append(int(id))
 
     detect = {
        "bbox" : detections.xyxy,
        "confidence" : detections.confidence,
-       "class_id" : detections.class_id,
-       "classes" : CLASSES       
+       "class_id" : class_ids,
             }
     return detect, outside_class
 
@@ -83,6 +83,7 @@ def run_classifier(image_rgb, blip2_model, blip_processor):
     generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
     generated_text = generated_text[0].strip()
     return generated_text
+
 
 def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
@@ -109,6 +110,7 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
           masks_list.append(high_conf_mask)
           mask_confidence_list.append(scores[best_mask_idx])
       return masks_list, mask_confidence_list, dino_success
+
 
 def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
     count = 0
@@ -145,6 +147,7 @@ def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, test
     print(f'Time Taken: {time.time() - start}')
 
     return metadata
+
 
 def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, 
                        grounding_dino_model, mask_predictor, use_search_words = False, testing = False, timing = False):

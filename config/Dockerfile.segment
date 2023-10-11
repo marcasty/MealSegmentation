@@ -65,12 +65,21 @@ RUN pip3 install \
 
 RUN python3 -m spacy download en_core_web_sm
 
+RUN pip3 install --upgrade pip
+
 RUN cd /tmp \
     && mkdir -p weights \
     && cd weights \
     && wget -q https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth \
     && cd ../ \
-    && git clone https://github.com/ChaoningZhang/MobileSAM.git
+    && git clone https://github.com/ChaoningZhang/MobileSAM.git \
+    && git clone https://github.com/pranav270-create/LLaVA.git \
+    && pip3 uninstall -y transformers \
+    && cd LLaVA \
+    && git pull \
+    && pip3 install -e . \
+    && pip3 install flash-attn --no-build-isolation \
+    && pip3 install ninja
     # && wget -q https://github.com/ChaoningZhang/MobileSAM/blob/master/weights/mobile_sam.pt
     # && wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
     # && cd ../ \
@@ -81,6 +90,7 @@ RUN cd /tmp \
 
 RUN pip3 install \
     git+https://github.com/ChaoningZhang/MobileSAM.git
+
 
 WORKDIR /me
 ENV PYTHONUNBUFFERED=1
