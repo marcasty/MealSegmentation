@@ -188,25 +188,25 @@ class FoodMetadata(COCO):
 
         for i in range(len(boxes)):
             if 'bbox' not in self.anns[ann_id]:
-                self.anns[ann_id]["class_ids"] = class_ids[i]
-                self.update_imgToAnns(ann_id, image_id, "class_ids", class_ids[i])
+                self.anns[ann_id]["class_ids"] = int(class_ids[i])
+                self.update_imgToAnns(ann_id, image_id, "class_ids", int(class_ids[i]))
                 bbox = [int(num) for num in boxes[i]]
                 self.anns[ann_id]["bbox"] = bbox
                 self.update_imgToAnns(ann_id, image_id, "bbox", bbox)
-                self.anns[ann_id]["box_confidence"] = box_confidence[i]
-                self.update_imgToAnns(ann_id, image_id, "box_confidence", box_confidence[i])
+                self.anns[ann_id]["box_confidence"] = float(box_confidence[i])
+                self.update_imgToAnns(ann_id, image_id, "box_confidence", float(box_confidence[i]))
 
             else:
                 new_annotation = self.anns[ann_id]
                 id = self.next_ann_id()
                 new_annotation['id'] = id
-                new_annotation["class_ids"] = class_ids[i]
-                self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
+                new_annotation["class_ids"] = int(class_ids[i])
+                self.update_imgToAnns(id, image_id, "class_ids", int(class_ids[i]))
                 bbox = [int(num) for num in boxes[i]]
                 new_annotation["bbox"] = bbox
                 self.update_imgToAnns(id, image_id, "bbox", bbox)
-                new_annotation["box_confidence"] = box_confidence[i]
-                self.update_imgToAnns(id, image_id, "box_confidence", box_confidence[i])
+                new_annotation["box_confidence"] = float(box_confidence[i])
+                self.update_imgToAnns(id, image_id, "box_confidence", float(box_confidence[i]))
                 self.anns[id] = new_annotation
                 dino_ann_ids.append(id)
 
@@ -219,7 +219,7 @@ class FoodMetadata(COCO):
             mask_filepath = os.path.join(directory, mask_id)
             torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
             self.anns[ann_id]['masks'] = mask_id
-            self.anns[ann_id]['mask_confidence'] = arr_mask_score[i]
+            self.anns[ann_id]['mask_confidence'] = float(arr_mask_score[i])
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
@@ -233,25 +233,13 @@ class FoodMetadata(COCO):
                 file_name = f"metadata_{current_datetime}.json"
         else:
             file_name = new_file_name
-        
-        # inverse the index
-        categories, images, annotations = [], [], []
-
-        for _, cat in self.cats.items():
-            categories.append(cat)
-        
-        for _, img in self.imgs.items():
-            images.append(img)
-        
-        for _, ann in self.anns.items():
-            annotations.append(ann)
-        
-        self.dataset['categories'] = categories
-        self.dataset['images'] = images
-        self.dataset['annotations'] = annotations
+                        
+        self.dataset['categories'] = list(self.cats.values())
+        self.dataset['images'] = list(self.imgs.values())
+        self.dataset['annotations'] = list(self.anns.values())
 
         with open(file_name, "w") as json_file:
-            json.dump(self.dataset, json_file, indent=4, cls=NpEncoder)
+            json.dump(self.dataset, json_file, indent=4)
 
 
 def parse_arguments():
