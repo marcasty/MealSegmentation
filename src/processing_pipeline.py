@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 from FoodMetadataCOCO import FoodMetadata
-from embedding_translation import assign_classes
+from text_to_embedding import assign_classes
 import time
 import matplotlib.pyplot as plt
 
@@ -66,6 +66,7 @@ def run_classifier(image_rgb, blip2_model, blip_processor):
     generated_text = generated_text[0].strip()
     return generated_text
 
+
 def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
     bounding_boxes = detections.xyxy
@@ -97,6 +98,7 @@ def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
           masks_list.append(high_conf_mask)
           mask_confidence_list.append(scores[best_mask_idx])
       return masks_list, mask_confidence_list, outside_class, dino_success
+
 
 def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
     count = 0
@@ -133,6 +135,7 @@ def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, test
     print(f'Time Taken: {time.time() - start}')
 
     return metadata
+
 
 def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, 
                        grounding_dino_model, mask_predictor, use_search_words = False, testing = False, timing = False):

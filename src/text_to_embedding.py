@@ -43,7 +43,8 @@ def get_average_embedding(embed_dict, sentence):
 
     # skip categories that don't appear in validation set
     try:
-      if words[0][0] == '$': return []
+      if words[0][0] == '$':
+        return []
     except:
       print(sentence)
     vectors = []
@@ -55,8 +56,9 @@ def get_average_embedding(embed_dict, sentence):
         continue
     if not vectors:
         print(f"Warning: No valid embeddings found in sentence: {sentence}")
-        return 0     
+        return 0
     return np.mean(vectors, axis=0)
+
 
 def find_similar_word(spacy_dict, cat_dict):
     """
@@ -90,11 +92,11 @@ def assign_classes(metadata, embedding_vars):
     for cat, mod in zip(category_names, mod_category_names):
         cat2mod[cat] = mod
 
-    # modded category name : embedding   
+    # modded category name : embedding
     embedded_cats_dict = {}
     for cat in mod_category_names:
         if cat[0] == '$': continue
-        embedded_cats_dict[cat] = get_average_embedding(embed_dict, cat) 
+        embedded_cats_dict[cat] = get_average_embedding(embed_dict, cat)
 
     # for each annotation, embed the spacy words and find the nearest modified category
     for ann_id, ann in metadata.anns.items():
@@ -104,14 +106,17 @@ def assign_classes(metadata, embedding_vars):
             embd = get_average_embedding(embed_dict, word)
             if not isinstance(embd, np.ndarray):
               print(f'word {word} in set {words} is not in embed dict')
-            else: 
+            else:
               spacy_dict[word] = embd
-        if len(spacy_dict) == 0: print('Warning: no modified class name assigned')
+        if len(spacy_dict) == 0: 
+            print('Warning: no modified class name assigned')
         # add the nearest modified classes and the associated classes to json
         mod_classes = find_similar_word(spacy_dict, embedded_cats_dict)
         classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
         metadata.add_class_from_embd(ann_id, mod_classes, classes)
     return metadata
+
+
 if __name__ == '__main__':
     HOME = 'C:/Users/marka/fun'
     HOME = '/me'
