@@ -48,7 +48,25 @@ def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thr
                 classes=enhance_class_name(class_names=CLASSES),
                 box_threshold=box_thresh,
                 text_threshold=text_thresh)
-    return detections
+    outside_class = 0
+
+    # catch scenarios where DINO detects object out of classes
+    class_ids = []
+    for detection in detections.class_ids:
+        if detection is None:
+          CLASSES.append('object_outside_class')
+          class_ids.append(len(CLASSES) - 1)
+          print('WARNING: DINO detected object(s) outside the class list')
+          outside_class = 1
+        else: class_ids.append(int(detection))
+
+    detect = {
+       "bbox" : detections.xyxy,
+       "confidence" : detections.confidence,
+       "class_id" : detections.class_id,
+       "classes" : CLASSES       
+            }
+    return detect, outside_class
 
 
 def run_sam_full(image_rgb, mask_generator):
@@ -68,35 +86,29 @@ def run_classifier(image_rgb, blip2_model, blip_processor):
 
 def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
-    bounding_boxes = detections.xyxy
-    detected_classes = detections.class_id
+    bounding_boxes = detections['bbox']
+    detected_classes = detections['class_id']
     masks_list = []
     mask_confidence_list = []
-    outside_class = 0
     dino_success = 1
 
-    if None in detected_classes:
-        CLASSES.append('object_outside_class')
-        detected_classes = [i if i is not None else len(CLASSES) - 1 for i in detected_classes]
-        print('WARNING: DINO detected object(s) outside the class list')
-        outside_class = 1  
     class_list = [CLASSES[i] for i in detected_classes]
     #print(f'Detected Classes are : {class_list}')
     
     if len(class_list) == 0: 
       print('MEGA WARNING: no objects detected :(')
       dino_success = 0
-      return masks_list, mask_confidence_list, outside_class, dino_success
+      return masks_list, mask_confidence_list, dino_success
     
     else:
-      for i, _ in enumerate(detections):
+      for i in len(bounding_boxes):
           DINO_box = bounding_boxes[i]
           masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
           best_mask_idx = np.argmax(scores)
           high_conf_mask = masks[best_mask_idx]
           masks_list.append(high_conf_mask)
           mask_confidence_list.append(scores[best_mask_idx])
-      return masks_list, mask_confidence_list, outside_class, dino_success
+      return masks_list, mask_confidence_list, dino_success
 
 def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
     count = 0
@@ -188,15 +200,15 @@ def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type,
         CLASSES = [word for word in classes if word not in forbidden_classes]
         # Run DINO
         start = time.time()
-        detections = run_dino(image_bgr, CLASSES, grounding_dino_model)
-        dino_ann_ids = metadata.add_dino_annot(ann_id, img_id, CLASSES, detections.class_id, detections.xyxy, detections.confidence)
+        detections, outside_class = run_dino(image_bgr, CLASSES, grounding_dino_model)
+        if outside_class == 1: 
+          status_report['outside_class'].append(ann_id)
+        dino_ann_ids = metadata.add_dino_annot(ann_id, img_id, CLASSES, detections['class_id'], detections['bbox'], detections['confidence'])
         if timing: print(f'DINO Time Taken: {time.time() - start}')
 
         # Run SAM
         start = time.time()
         masks_list, mask_confidence_list, outside_class, dino_success = run_sam_box(image_rgb, CLASSES, detections, mask_predictor)
-        if outside_class == 1: 
-          status_report['outside_class'].append(ann_id)
         if dino_success == 0: 
           status_report['no_detect'].append(ann_id)
           continue
