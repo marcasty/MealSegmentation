@@ -52,19 +52,18 @@ def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thr
 
     # catch scenarios where DINO detects object out of classes
     class_ids = []
-    for detection in detections.class_ids:
-        if detection is None:
+    for id in detections.class_ids:
+        if id is None:
           CLASSES.append('object_outside_class')
           class_ids.append(len(CLASSES) - 1)
           print('WARNING: DINO detected object(s) outside the class list')
           outside_class = 1
-        else: class_ids.append(int(detection))
+        else: class_ids.append(int(id))
 
     detect = {
        "bbox" : detections.xyxy,
        "confidence" : detections.confidence,
-       "class_id" : detections.class_id,
-       "classes" : CLASSES       
+       "class_id" : class_ids,
             }
     return detect, outside_class
 
