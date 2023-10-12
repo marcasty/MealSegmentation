@@ -2,17 +2,26 @@ import torch
 import numpy as np
 from typing import Union
 
-from utils import assert_input
+
+#from utils import assert_input
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+def blip2_setup(cfg : DictConfig):
+    from transformers import AutoProcessor, Blip2ForConditionalGeneration
+    blip2_processor = AutoProcessor.from_pretrained(cfg.blip2.blip2_model)
+    blip2_model = Blip2ForConditionalGeneration.from_pretrained(cfg.blip2.blip2_model, torch_dtype=torch.float16).to(DEVICE)
+    blip2_model.eval()
+
+    return blip2_model, blip2_processor
 
 
 def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     """given RGB image, produce text"""
 
     print("Please ensure input image is in RGB format!")
-    image = assert_input(image)
+    #image = assert_input(image)
 
     if 'blip2_model' in kwargs:
         blip2_model = kwargs['blip2_model']
@@ -28,11 +37,18 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
         print(f"No device found, using baseline computing device: {DEVICE}")
         device = DEVICE
 
-    prompt = "the food or foods in this image include: "
-    inputs = blip2_processor(image, text=prompt, return_tensors="pt").to(device, torch.float16)
-    generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-    generated_text = blip2_processor.batch_decode(generated_ids, skip_special_tokens=True)
-    generated_text = generated_text[0].strip()
+    generated_text, attempts = "", 0
+    while not generated_text:
+        if attempts > 10: 
+            print(f"Warning: BLIP-2 created an empty caption after {attempts - 1} attempts")
+            return "FAILURE"
+
+        prompt = "the food or foods in this image include: "
+        inputs = blip2_processor(image, text=prompt, return_tensors="pt").to(device, torch.float16)
+        generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
+        generated_text = blip2_processor.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_text = generated_text[0].strip()
+        attempts += 1
     return generated_text
 
 
