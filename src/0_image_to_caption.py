@@ -37,12 +37,12 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
 
 
 def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
+    """given RGB image, produce text"""
+
     # Import helper functions to run_llava
     from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
     from llava.conversation import conv_templates, SeparatorStyle
     from llava.mm_utils import tokenizer_image_token
-
-    """given RGB image, produce text"""
 
     print("Please ensure input image is in RGB format!")
     image = assert_input(image)
