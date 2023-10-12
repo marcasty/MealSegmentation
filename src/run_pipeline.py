@@ -5,6 +5,7 @@ from groundingdino.util.inference import Model as DINOModel
 # from segment_anything import sam_model_registry, SamPredictor
 from mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 import torch
+import numpy as np
 
 from processing_pipeline import *
 import sys
@@ -68,6 +69,40 @@ modded_cat_path = '/me/round2_categories_modified.txt'
 if not os.path.exists(embd_model_dir):
     os.makedirs(embd_model_dir)
 embedding_vars = [embd_model_type, embd_model_dir, modded_cat_path]
+
+
+def download_glove(model_dir):
+    """
+    Get a dictionary of word embeddings from GloVe
+    https://nlp.stanford.edu/projects/glove/
+
+    Args:
+        a path to save the model
+    Return:
+        embed_dict -> word : 200 dimension embedding
+    """
+    import urllib.request
+    import zipfile
+
+    # Download
+    if not os.path.exists(f'{model_dir}/glove.6B.zip'):
+        print('Downloading GloVe')
+        urllib.request.urlretrieve('https://nlp.stanford.edu/data/glove.6B.zip', f'{model_dir}/glove.6B.zip')
+    if not os.path.exists(f'{model_dir}/glove.6B.200d.txt'):
+        print('Unzipping GloVe')
+        with zipfile.ZipFile(f'{model_dir}/glove.6B.zip', 'r') as zip_ref:
+            zip_ref.extractall(f'{model_dir}')
+
+    print('Creating Dictionary of GloVe Embeddings')
+    embed_dict = {}
+    with open(f'{model_dir}/glove.6B.200d.txt', 'r', encoding='utf-8') as f:
+        for line in f:
+            values = line.split()
+            word = values[0]
+            vector = np.asarray(values[1:], 'float32')
+            embed_dict[word] = vector
+    return embed_dict
+
 
 text_metadatametadata = get_keywords(img_dir, metadata, blip_processor, blip2_model, spacy_nlp, embedding_vars, testing=True)
 if embedding_vars is not None:

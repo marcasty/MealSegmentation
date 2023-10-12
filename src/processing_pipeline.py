@@ -1,10 +1,12 @@
 from typing import List
 from string import punctuation
 import cv2
+import os
 import numpy as np
 import torch
 from FoodMetadataCOCO import FoodMetadata
-from text_to_embedding import assign_classes
+from text_to_embedding import run_glove
+from embedding_to_category import run_nn_lookup
 import time
 import matplotlib.pyplot as plt
 
@@ -238,3 +240,74 @@ def get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor):
         color_mask = np.concatenate([np.random.random(3), [0.75]])
         img_full[m] = color_mask
     plt.imsave('test_v3.png', img_full)
+
+
+def assign_classes(metadata, embed_dict, category_names, cat_path):
+
+    with open(cat_path, "r" ) as f:
+        cats = f.readlines()
+        mod_category_names = [cat.strip() for cat in cats]
+
+    # create a dictionary category name : modded category name
+    cat2mod = {}
+    for cat, mod in zip(category_names, mod_category_names):
+        cat2mod[cat] = mod
+
+    # modded category name : embedding
+    embedded_cats_dict = {}
+    for cat in mod_category_names:
+        if cat[0] == '$': continue
+        embedded_cats_dict[cat] = run_glove(embed_dict, cat)
+
+    # for each annotation, embed the spacy words and find the nearest modified category
+    for ann_id, ann in metadata.anns.items():
+        words = ann["spacy"]
+        spacy_dict = {}
+        for word in words:
+            embd = run_glove(embed_dict, word)
+            if not isinstance(embd, np.ndarray):
+              print(f'word {word} in set {words} is not in embed dict')
+            else:
+              spacy_dict[word] = embd
+        if len(spacy_dict) == 0: 
+            print('Warning: no modified class name assigned')
+        # add the nearest modified classes and the associated classes to json
+        mod_classes = run_nn_lookup(spacy_dict, embedded_cats_dict)
+        classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
+        metadata.add_class_from_embd(ann_id, mod_classes, classes)
+    return metadata
+
+
+if __name__ == '__main__':
+    HOME = 'C:/Users/marka/fun'
+    HOME = '/me'
+
+    model_dir = f'{HOME}/MealSegmentation/tmp/embd_models'
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    # download glove and save to some directory; this also happens in "assign_class()"
+    # download_glove(model_dir)
+
+    # the model
+    embd_model_type = "GloVe"
+
+    # the path to the hand-modified category names
+    modded_cat_path = f'{HOME}/round2_categories_modified.txt'
+
+    from run_pipeline import download_glove
+    model = download_glove(model_dir)
+
+    # import a json file that has blip2/spacy annotations
+    metadata = FoodMetadata(f'{HOME}/public_validation_set_2.1_blip_spacy.json')
+    category_ids = metadata.loadCats(metadata.getCatIds())
+    category_names = [_["name_readable"] for _ in category_ids]
+
+    # find the nearest class to each blip2/spacy word
+    assign_classes(metadata, model, category_names, modded_cat_path)
+
+    # look at one example
+    print(metadata.dataset['annotations'][0])
+
+    # save it so you can check it out :)
+    metadata.export_coco(new_file_name='embedding_test.json')

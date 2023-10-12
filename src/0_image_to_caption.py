@@ -1,25 +1,19 @@
 import torch
 import numpy as np
 from typing import Union
-import copy
+
+from utils import assert_input
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def assert_input(input):
-    if not torch.is_tensor(input):
-        copy_input = copy.deepcopy(input)
-        input = torch.from_numpy(copy_input)
-    if input.shape[-1] != 3:
-        raise AssertionError(f"The length of the third dimension ({input.shape[-1]}) does not match the expected length ({3})")
-    return input
-
-
 def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     """given RGB image, produce text"""
+
     print("Please ensure input image is in RGB format!")
     image = assert_input(image)
+
     if 'blip2_model' in kwargs:
         blip2_model = kwargs['blip2_model']
     else:
@@ -49,8 +43,10 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     from llava.mm_utils import tokenizer_image_token
 
     """given RGB image, produce text"""
+
     print("Please ensure input image is in RGB format!")
     image = assert_input(image)
+
     if 'llava_model' in kwargs:
         model = kwargs["llava_model"]
     else:
