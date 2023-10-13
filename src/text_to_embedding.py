@@ -53,12 +53,12 @@ def run_glove(text: str, **kwargs) -> np.ndarray:
         try:
             vectors.append(model[word.lower()])
         except KeyError:
-            print(f"Warning: Word '{word}' not found in embeddings.")
+            print(f"L1 Warning: Word '{word}' has no Embedding")
             continue
 
     if len(vectors) < 1:
         if len(words) > 1:
-            print(f"Warning: No valid embeddings found in sentence: {text}")
+            print(f"L2 Warning: Entire String '{text}' has no Embeddings")
             return []
         else:
             return np.array([])
@@ -117,14 +117,14 @@ def get_embd_dicts(metadata, **kwargs) -> Tuple[dict, dict]:
     for word in unique_keywords_list:
         keyword_to_embed[word] = run_glove(word, model=embed_dict)
         if len(keyword_to_embed[word]) == 0:
-            print(f"Notice: Removing {word} from keyword dictionary")
+            print(f"Notice: Removing {word} from Keyword Dictionary")
             del keyword_to_embed[word]
 
     mod_cat_to_embed = {}
     for word in mod_cat_names:
         mod_cat_to_embed[word] = run_glove(word, model=embed_dict)
         if len(mod_cat_to_embed[word]) == 0:
-            print(f"Notice: Removing {word} from keyword dictionary")
+            print(f"Notice: Removing {word} from Modified Category Dictionary")
             del mod_cat_to_embed[word]
 
     return keyword_to_embed, mod_cat_to_embed
