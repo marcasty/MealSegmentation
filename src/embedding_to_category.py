@@ -48,8 +48,6 @@ def get_categories(metadata, keyword_to_embed: dict, mod_cat_to_embed: dict, **k
                         if keyword in keyword_to_mod_cat:
                             mod_cat.append(keyword_to_mod_cat[keyword])
                             cat.append(mod_to_cat[keyword_to_mod_cat[keyword]])
-                    metadata.add_text_annot(
-                        ann["id"], img_id, "mod_class_from_embd", mod_cat
-                    )
+                    metadata.add_text_annot(ann["id"], img_id, "mod_class_from_embd", mod_cat)
                     metadata.add_text_annot(ann["id"], img_id, "class_from_embd", cat)
     return metadata

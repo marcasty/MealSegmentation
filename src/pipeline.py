@@ -9,6 +9,8 @@ import os
 import sys
 
 sys.path.append("../")
+sys.path.append('/me/unit_tests')
+from unit_tests.embedding_to_category_check import check_metadata_categories
 HOME = os.path.expanduser("~")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HOME = "/tmp"
@@ -58,6 +60,7 @@ def main(cfg: DictConfig) -> None:
         )
         print(metadata.anns[1])
         print(len(metadata.anns))
+    check_metadata_categories(metadata)
 
 
 if __name__ == "__main__":
