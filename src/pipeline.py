@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from FoodMetadataCOCO import FoodMetadata
-from image_to_caption import run_blip2, get_captions
+from image_to_caption import get_captions
 import torch
 import os
 import sys
@@ -18,7 +18,11 @@ def main(cfg : DictConfig) -> None:
     metadata = FoodMetadata(cfg.file.metadata, pred = True)
 
     if cfg.stage.image_to_caption.is_component == True:
-        metadata = get_captions(metadata, cfg, model= cfg.stage.image_to_caption.model)
+        metadata = get_captions(metadata, model= cfg.stage.image_to_caption.model,
+                                image_dir = cfg.path.images,
+                                testing = cfg.var.testing,
+                                model_variation = cfg.stage.image_to_caption.model_variation
+                                )
         print(metadata.anns[1])        
         
         # do a check

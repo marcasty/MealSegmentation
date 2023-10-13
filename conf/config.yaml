@@ -2,6 +2,10 @@ stage:
   image_to_caption:
     is_component: True
     model: 'blip2'
+    model_variation: "Salesforce/blip2-opt-2.7b"
+  caption_to_keyword:
+    is_component: True
+    model: 'glove'
 
 path:
   save_dir: '/me/building_pipeline'
@@ -14,6 +18,3 @@ file:
 var:
   device: 'cuda'
   testing: True
-
-blip2:
-  blip2_model: "Salesforce/blip2-opt-2.7b"

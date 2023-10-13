@@ -134,19 +134,29 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     return generated_text
 
 
-def get_captions(metadata, cfg : DictConfig, model):
-    
-    if model == 'blip2':
-        blip2_model, blip2_processor = blip2_setup(cfg.blip2.blip2_model)
-    elif model == 'llava1.5':
-        raise AssertionError("Need to implement Llava1.5 captioning")
+def get_captions(metadata, **kwargs):
+    if "model" in kwargs:
+        model = kwargs["model"]
     else:
         raise AssertionError("Must specify a model to caption images")
+    
+    if "model_variation" in kwargs:
+        blip2_model, blip2_processor = blip2_setup(kwargs["model_variation"])
+
+    if "image_dir" in kwargs:
+        image_dir = kwargs["image_dir"]
+    else:
+        raise AssertionError("No Llava 1.5 Image Processor Provided")
+
+    if "testing" in kwargs:
+        testing = kwargs["testing"]
+    else:
+        testing = False
 
     for cat_id, cat in metadata.cats.items():
         
         count += 1
-        if count > 3 and cfg.var.testing is True: return metadata
+        if count > 3 and testing is True: return metadata
         print(f'category {count} / 323: {cat["name_readable"]}')
 
         imgIds = metadata.getImgIds(catIds=cat_id)
@@ -155,10 +165,10 @@ def get_captions(metadata, cfg : DictConfig, model):
         else:
             imgs = metadata.loadImgs(imgIds)
             for img in imgs:
-                image_bgr = cv2.imread(f'{cfg.path.images}/{img["file_name"]}')
+                image_bgr = cv2.imread(f'{image_dir}/{img["file_name"]}')
                 image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
                 if model == 'blip2':
-                    caption = run_blip2(f'{img_dir}/{img["file_name"]}', blip2_processor, blip2_model)            
+                    caption = run_blip2(image_rgb, blip2_model, blip2_processor)            
                 elif model == 'llava1.5':
                     raise AssertionError("Need to implement Llava1.5 captioning")
                 else:

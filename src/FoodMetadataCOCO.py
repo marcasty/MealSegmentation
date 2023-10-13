@@ -154,11 +154,10 @@ class FoodMetadata(COCO):
         self.imgToAnns[image_id].append(new_annotation)
         return ann_id
 
-    def add_blip2_annot(self, ann_id, image_id, text):
-        """add blip2 results"""
-
-        self.anns[ann_id]["blip2"] = text
-        self.update_imgToAnns(ann_id, image_id, "blip2", text)
+    def add_text_annot(self, ann_id, image_id, model, text):
+        """add text annotation"""
+        self.anns[ann_id][model] = text
+        self.update_imgToAnns(ann_id, image_id, model, text)
 
     def add_spacy_annot(self, ann_id, image_id, words):
         """add spacy results"""
