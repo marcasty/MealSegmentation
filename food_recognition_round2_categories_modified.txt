@@ -1,4 +1,4 @@
-$steamed beetroot
+steamed beetroot
 wholemeal bread
 jam
 water
@@ -10,12 +10,12 @@ hard cheese
 cottage cheese
 coffee
 mixed fruit
-$pancake
+pancake
 tea
 salmon smoked
 avocado
 scallion
-$ristretto with caffeine
+espresso
 ham
 egg
 bacon
@@ -28,7 +28,7 @@ shrimp prawn
 carrot
 chickpeas
 french salad dressing
-$pasta hornli
+pasta hornli
 cream sauce
 pasta
 tomato sauce
@@ -63,10 +63,10 @@ asparagus
 tartar sauce
 pretzel
 pickled cucumber
-$curry vegetarian
-$soup of lentils dahl dhal
+vegetarian curry
+lentil dahl soup
 salmon
-$salt cake vegetables filled
+vegetable cake
 orange
 pasta noodles
 heavy cream
@@ -78,7 +78,7 @@ spaetzle
 salad lambs ear
 salad leaf green
 potato
-$white cabbage
+white cabbage
 halloumi
 raw beetroot
 bread grain
@@ -88,7 +88,7 @@ bread white
 natural curds
 quiche
 beef
-$taboule prepared with couscous
+tabbouleh couscous
 aubergine eggplant
 mozzarella
 penne pasta
@@ -101,13 +101,13 @@ caprese salad tomato mozzarella
 leaf spinach
 white bread roll
 omelette with flour thick crepe plain
-$tuna
+tuna
 dark chocolate
 savoury sauce
 raisins
-$ice tea on black tea basis
+iced black tea
 kaki
-$smoothie
+smoothie
 crepe
 nuggets
 chili
@@ -145,7 +145,7 @@ toasted bread
 water with lemon juice
 espresso
 egg scrambled
-$juice orange
+orange juice
 braided white bread
 emmental cheese
 hazelnut chocolate spread
@@ -158,7 +158,7 @@ pumpkin
 swiss chard
 red cabbage raw
 spinach raw
-$chicken coconut cream curry
+chicken coconut cream curry
 crunch muesli
 biscuit
 meatloaf
@@ -166,7 +166,7 @@ fresh cheese
 honey
 peas carrots
 parsley
-$brownie
+brownie
 ice cream
 salad dressing
 dried meat
@@ -177,14 +177,14 @@ praline
 walnut
 potato salad
 kohlrabi
-$alfa sprouts
+alfalfa sprouts
 brussel sprouts
 gruyere
 bulgur
 grapes
 chocolate egg
 cappuccino
-$crisp bread
+bread crisps
 black bread
 rosti
 mango
@@ -227,7 +227,7 @@ cookies
 sun dried tomato
 bread ticino
 semi hard cheese
-$porridge
+porridge
 juice
 chocolate milk
 bread fruit
@@ -254,7 +254,7 @@ pineapple
 seeds
 focaccia
 mixed milk beverage
-$coleslaw
+coleslaw
 sweet potato
 chicken leg
 croissant
@@ -262,21 +262,21 @@ cheesecake
 sauce cocktail
 chocolate croissant
 pumpkin seeds
-$artichoke
+artichoke
 soft drink
 apple pie
 fluffy bread roll
-$savoury pastry stick
-$canned tuna
+puff pastry cheese stick
+canned tuna
 meat terrine pate
 falafel balls
 berries
 latte macchiato
 sugar melon galia honeydew cantaloupe
-$mixed seeds
+mixed seeds
 oil vinegar salad dressing
-$celeriac
-$chocolate mousse
+celeriac celery root
+chocolate mousse
 lemon
 chocolate cookies
 bircher muesli oats fruit nuts milk
@@ -289,17 +289,17 @@ wine rose
 cola
 raspberries
 roll with pieces of chocolate
-$cake lemon
+lemon cake
 rice wild
 gluten free bread
-$pearl onion
+pearl onion
 tzatziki
-$ham croissant
-$corn crisps
+ham croissant
+corn crisps chips
 green lentils
 rice whole grain
 cervelat cervelas servelat zervelat sausage
-$aperol spritz
+aperol spritz
 peas
 tiramisu
 apricots
@@ -318,6 +318,6 @@ coconut
 banana cake
 curry sauce
 watermelon
-$white asparagus
+white asparagus
 cherries
 nectarine

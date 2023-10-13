@@ -159,23 +159,6 @@ class FoodMetadata(COCO):
         self.anns[ann_id][model] = text
         self.update_imgToAnns(ann_id, image_id, model, text)
 
-    def add_spacy_annot(self, ann_id, image_id, words):
-        """add spacy results"""
-
-        self.anns[ann_id]["spacy"] = words
-        self.update_imgToAnns(ann_id, image_id, "spacy", words)
-
-
-    def add_class_from_embd(self, ann_id, mod_classes, classes):
-        """add class name nearest to blip/spacy output"""
-        
-        image_id = self.anns[ann_id]["image_id"]
-
-        self.anns[ann_id]["mod_class_from_embd"] = mod_classes
-        self.update_imgToAnns(ann_id, image_id, "mod_class_from_embd", mod_classes)
-        self.anns[ann_id]["class_from_embd"] = classes
-        self.update_imgToAnns(ann_id, image_id, "class_from_embd", classes)
-
     # adds dino annotations
     def add_dino_annot(self, ann_id, image_id, classes, class_ids, boxes, box_confidence):
         dino_ann_ids = [ann_id]
