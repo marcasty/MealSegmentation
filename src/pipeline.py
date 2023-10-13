@@ -19,16 +19,15 @@ def main(cfg: DictConfig) -> None:
     metadata = FoodMetadata(cfg.file.metadata, pred=True)
 
     if cfg.stage.image_to_caption.is_component:
-        metadata = get_captions(
-            metadata,
-            model=cfg.stage.image_to_caption.model,
-            image_dir=cfg.path.images,
-            testing=cfg.var.testing,
-            specific_model=cfg.stage.image_to_caption.specific_model
-            )
+        metadata = get_captions(metadata, model=cfg.stage.image_to_caption.model,image_dir=cfg.path.images,
+                                testing=cfg.var.testing,specific_model=cfg.stage.image_to_caption.specific_model)
         print(metadata.anns[1])
         # do a check
 
+    if cfg.stage.caption_to_keyword.is_component:
+        metadata = get_captions(metadata, model=cfg.stage.caption_to_keyword.model, 
+                                testing=cfg.var.testing, specific_model=cfg.stage.caption_to_keyword.specific_model)
+        print(metadata.anns[1])
 
 if __name__ == "__main__":
     main()

@@ -140,9 +140,6 @@ def get_captions(metadata, **kwargs):
     else:
         raise AssertionError("Must specify a model to caption images")
 
-    if "specific_model" in kwargs:
-        blip2_model, blip2_processor = blip2_setup(kwargs["specific_model"])
-
     if "image_dir" in kwargs:
         image_dir = kwargs["image_dir"]
     else:
@@ -152,6 +149,10 @@ def get_captions(metadata, **kwargs):
         testing = kwargs["testing"]
     else:
         testing = False
+
+    # this will change once we support more image_to_caption models
+    if "specific_model" in kwargs:
+        blip2_model, blip2_processor = blip2_setup(kwargs["specific_model"])
 
     count = 0
     for cat_id, cat in metadata.cats.items():
