@@ -4,6 +4,7 @@ from FoodMetadataCOCO import FoodMetadata
 from image_to_caption import get_captions
 from text_to_embedding import get_embd_dicts
 from embedding_to_category import get_categories
+from image_text_to_box import get_boxes
 import torch
 import os
 import sys
@@ -22,14 +23,14 @@ def main(cfg: DictConfig) -> None:
         os.makedirs(cfg.path.save_dir)
 
     metadata = FoodMetadata(cfg.file.metadata)
-
+    print(metadata.dataset["info"])
     if cfg.stage.image_to_caption.is_component:
         metadata = get_captions(
             metadata,
             model=cfg.stage.image_to_caption.model,
             image_dir=cfg.path.images,
             testing=cfg.var.testing,
-            specific_model=cfg.stage.image_to_caption.specific_model,
+            specific_model=cfg.stage.image_to_caption.model_chkpt,
         )
         print(metadata.anns[1])
 
@@ -38,7 +39,7 @@ def main(cfg: DictConfig) -> None:
             metadata,
             model=cfg.stage.caption_to_keyword.model,
             testing=cfg.var.testing,
-            specific_model=cfg.stage.caption_to_keyword.specific_model,
+            specific_model=cfg.stage.caption_to_keyword.model_chkpt,
         )
         print(metadata.anns[1])
 
@@ -60,7 +61,18 @@ def main(cfg: DictConfig) -> None:
         )
         print(metadata.anns[1])
         print(len(metadata.anns))
-    check_metadata_categories(metadata)
+        check_metadata_categories(metadata)
+
+    if cfg.stage.image_text_to_box.is_component:
+        metadata = get_boxes(
+            metadata,
+            model=cfg.stage.image_text_to_box.model,
+            image_dir=cfg.path.images,
+            testing=cfg.var.testing,
+            model_chkpt=cfg.stage.image_text_to_box.model_chkpt,
+            model_config=cfg.stage.image_text_to_box.model_config,
+            class_type=cfg.stage.image_text_to_box.class_type,
+        )
 
 
 if __name__ == "__main__":

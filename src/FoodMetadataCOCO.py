@@ -141,7 +141,7 @@ class FoodMetadata(COCO):
             if ann['id'] == ann_id:
                 ann[key] = value
 
-    def add_annotation(self, image_id, cat_id):
+    def create_annot(self, image_id, cat_id):
         """initializes new id"""
         ann_id = self.next_ann_id()
         
@@ -154,45 +154,27 @@ class FoodMetadata(COCO):
         self.imgToAnns[image_id].append(new_annotation)
         return ann_id
 
-    def add_text_annot(self, ann_id, image_id, model, text):
+    def add_annot(self, ann_id, image_id, model, text):
         """add text annotation"""
         self.anns[ann_id][model] = text
         self.update_imgToAnns(ann_id, image_id, model, text)
 
-    # adds dino annotations
-    def add_dino_annot(self, ann_id, image_id, classes, class_ids, boxes, box_confidence):
-        dino_ann_ids = [ann_id]
+    def add_dino_annot(self, ann_id, image_id, detections):
+        """add DINO annotations"""
 
-        self.anns[ann_id]["num_objects"] = len(boxes)
-        self.update_imgToAnns(ann_id, image_id, "num_objects", len(boxes))
-        self.anns[ann_id]["classes"] = classes
-        self.update_imgToAnns(ann_id, image_id, "classes", classes)
+        self.add_annot(ann_id, image_id, "num_objects", len(detections["bbox"]))
+        self.add_annot(ann_id, image_id, "classes", detections["classes"])
 
-        for i in range(len(boxes)):
-            if 'bbox' not in self.anns[ann_id]:
-                self.anns[ann_id]["class_ids"] = class_ids[i]
-                self.update_imgToAnns(ann_id, image_id, "class_ids", class_ids[i])
-                bbox = [int(num) for num in boxes[i]]
-                self.anns[ann_id]["bbox"] = bbox
-                self.update_imgToAnns(ann_id, image_id, "bbox", bbox)
-                self.anns[ann_id]["box_confidence"] = float(box_confidence[i])
-                self.update_imgToAnns(ann_id, image_id, "box_confidence", float(box_confidence[i]))
-
-            else:
+        for i in range(len(detections["bbox"])):
+            if 'bbox' in self.anns[ann_id]:
                 new_annotation = self.anns[ann_id]
-                id = self.next_ann_id()
-                new_annotation['id'] = id
-                new_annotation["class_ids"] = class_ids[i]
-                self.update_imgToAnns(id, image_id, "class_ids", class_ids[i])
-                bbox = [int(num) for num in boxes[i]]
-                new_annotation["bbox"] = bbox
-                self.update_imgToAnns(id, image_id, "bbox", bbox)
-                new_annotation["box_confidence"] = float(box_confidence[i])
-                self.update_imgToAnns(id, image_id, "box_confidence", float(box_confidence[i]))
-                self.anns[id] = new_annotation
-                dino_ann_ids.append(id)
-
-        return dino_ann_ids
+                ann_id = self.next_ann_id()
+                new_annotation['id'] = ann_id
+                self.anns[ann_id] = new_annotation
+                self.imgToAnns[image_id].append(new_annotation)
+            self.add_annot(ann_id, image_id, "class_id", detections["class_id"][i])
+            self.add_annot(ann_id, image_id, "bbox", detections["bbox"][i])
+            self.add_annot(ann_id, image_id, "box_confidence", round(float(detections["box_confidence"][i]),4))
 
     def add_sam_annot(self, ann_ids, arr_masks, arr_mask_score, directory):
         for i, ann_id in enumerate(ann_ids):

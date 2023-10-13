@@ -23,8 +23,8 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
 
     print("Please ensure input image is in RGB format!")
 
-    if 'blip2_model' in kwargs:
-        blip2_model = kwargs['blip2_model']
+    if 'specific_model' in kwargs:
+        blip2_model = kwargs['specific_model']
     else:
         raise AssertionError("No BLIP2 Model Provided")
     if 'blip2_processor' in kwargs:
@@ -164,7 +164,7 @@ def get_captions(metadata, **kwargs):
 
         imgIds = metadata.getImgIds(catIds=cat_id)
 
-        if len(imgIds) == 0:
+        if not imgIds:
             continue
         else:
             imgs = metadata.loadImgs(imgIds)
@@ -177,6 +177,6 @@ def get_captions(metadata, **kwargs):
                     raise AssertionError("Need to implement Llava1.5 captioning")
                 else:
                     raise AssertionError("Must specify a model to caption images")
-                ann_id = metadata.add_annotation(img["id"], cat_id)
-                metadata.add_text_annot(ann_id, img["id"], model, caption)
+                ann_id = metadata.create_annot(img["id"], cat_id)
+                metadata.add_annot(ann_id, img["id"], model, caption)
     return metadata
