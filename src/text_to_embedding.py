@@ -59,7 +59,7 @@ def run_glove(text: str, **kwargs) -> np.ndarray:
         else:
             return np.array([])
     elif len(vectors) == 1:
-        return vectors
+        return vectors[0]
     else:
         return np.mean(vectors, axis=0)
 
