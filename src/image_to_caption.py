@@ -1,20 +1,21 @@
 import torch
 import numpy as np
 from typing import Union
-
+from omegaconf import DictConfig, OmegaConf
+import cv2
 
 #from utils import assert_input
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def blip2_setup(cfg : DictConfig):
+def blip2_setup(blip2_model):
     from transformers import AutoProcessor, Blip2ForConditionalGeneration
-    blip2_processor = AutoProcessor.from_pretrained(cfg.blip2.blip2_model)
-    blip2_model = Blip2ForConditionalGeneration.from_pretrained(cfg.blip2.blip2_model, torch_dtype=torch.float16).to(DEVICE)
-    blip2_model.eval()
+    processor = AutoProcessor.from_pretrained(blip2_model)
+    model = Blip2ForConditionalGeneration.from_pretrained(blip2_model, torch_dtype=torch.float16).to(DEVICE)
+    model.eval()
 
-    return blip2_model, blip2_processor
+    return model, processor
 
 
 def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
@@ -131,3 +132,37 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
         outputs = outputs[:-len(stop_str)]
     generated_text = outputs.strip()
     return generated_text
+
+
+def get_captions(metadata, cfg : DictConfig, model):
+    
+    if model == 'blip2':
+        blip2_model, blip2_processor = blip2_setup(cfg.blip2.blip2_model)
+    elif model == 'llava1.5':
+        raise AssertionError("Need to implement Llava1.5 captioning")
+    else:
+        raise AssertionError("Must specify a model to caption images")
+
+    for cat_id, cat in metadata.cats.items():
+        
+        count += 1
+        if count > 3 and cfg.var.testing is True: return metadata
+        print(f'category {count} / 323: {cat["name_readable"]}')
+
+        imgIds = metadata.getImgIds(catIds=cat_id)
+        
+        if len(imgIds) == 0: continue
+        else:
+            imgs = metadata.loadImgs(imgIds)
+            for img in imgs:
+                image_bgr = cv2.imread(f'{cfg.path.images}/{img["file_name"]}')
+                image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+                if model == 'blip2':
+                    caption = run_blip2(f'{img_dir}/{img["file_name"]}', blip2_processor, blip2_model)            
+                elif model == 'llava1.5':
+                    raise AssertionError("Need to implement Llava1.5 captioning")
+                else:
+                    raise AssertionError("Must specify a model to caption images")
+                ann_id = metadata.add_annotation(img["id"], cat_id)
+                metadata.add_text_annot(ann_id, img["id"], model, caption)
+    return metadata
