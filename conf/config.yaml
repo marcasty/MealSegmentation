@@ -5,7 +5,8 @@ stage:
     specific_model: "Salesforce/blip2-opt-2.7b"
   caption_to_keyword:
     is_component: True
-    model: 'glove'
+    model: 'spacy'
+    specific_model: "en_core_web_sm"
 
 path:
   save_dir: '/me/building_pipeline'
