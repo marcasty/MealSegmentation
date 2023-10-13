@@ -1,18 +1,18 @@
 import torch
 import numpy as np
 from typing import Union
-from omegaconf import DictConfig, OmegaConf
 import cv2
-
-#from utils import assert_input
 
 global DEVICE
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 def blip2_setup(blip2_model):
     from transformers import AutoProcessor, Blip2ForConditionalGeneration
     processor = AutoProcessor.from_pretrained(blip2_model)
-    model = Blip2ForConditionalGeneration.from_pretrained(blip2_model, torch_dtype=torch.float16).to(DEVICE)
+    model = Blip2ForConditionalGeneration.from_pretrained(
+        blip2_model,
+        torch_dtype=torch.float16).to(DEVICE)
     model.eval()
 
     return model, processor
@@ -22,7 +22,6 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     """given RGB image, produce text"""
 
     print("Please ensure input image is in RGB format!")
-    #image = assert_input(image)
 
     if 'blip2_model' in kwargs:
         blip2_model = kwargs['blip2_model']
@@ -40,14 +39,16 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
 
     generated_text, attempts = "", 0
     while not generated_text:
-        if attempts > 10: 
-            print(f"Warning: BLIP-2 created an empty caption after {attempts - 1} attempts")
+        if attempts > 10:
+            print("Warning: BLIP-2 created an empty caption")
             return "FAILURE"
 
         prompt = "the food or foods in this image include: "
-        inputs = blip2_processor(image, text=prompt, return_tensors="pt").to(device, torch.float16)
+        inputs = blip2_processor(
+            image, text=prompt, return_tensors="pt").to(device, torch.float16)
         generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-        generated_text = blip2_processor.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_text = blip2_processor.batch_decode(
+            generated_ids, skip_special_tokens=True)
         generated_text = generated_text[0].strip()
         attempts += 1
     return generated_text
@@ -62,7 +63,6 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     from llava.mm_utils import tokenizer_image_token
 
     print("Please ensure input image is in RGB format!")
-    image = assert_input(image)
 
     if 'llava_model' in kwargs:
         model = kwargs["llava_model"]
@@ -139,9 +139,9 @@ def get_captions(metadata, **kwargs):
         model = kwargs["model"]
     else:
         raise AssertionError("Must specify a model to caption images")
-    
-    if "model_variation" in kwargs:
-        blip2_model, blip2_processor = blip2_setup(kwargs["model_variation"])
+
+    if "specific_model" in kwargs:
+        blip2_model, blip2_processor = blip2_setup(kwargs["specific_model"])
 
     if "image_dir" in kwargs:
         image_dir = kwargs["image_dir"]
@@ -153,22 +153,25 @@ def get_captions(metadata, **kwargs):
     else:
         testing = False
 
+    count = 0
     for cat_id, cat in metadata.cats.items():
-        
+
         count += 1
-        if count > 3 and testing is True: return metadata
+        if count > 3 and testing is True:
+            return metadata
         print(f'category {count} / 323: {cat["name_readable"]}')
 
         imgIds = metadata.getImgIds(catIds=cat_id)
-        
-        if len(imgIds) == 0: continue
+
+        if len(imgIds) == 0:
+            continue
         else:
             imgs = metadata.loadImgs(imgIds)
             for img in imgs:
                 image_bgr = cv2.imread(f'{image_dir}/{img["file_name"]}')
                 image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
                 if model == 'blip2':
-                    caption = run_blip2(image_rgb, blip2_model, blip2_processor)            
+                    caption = run_blip2(image_rgb, blip2_model, blip2_processor)
                 elif model == 'llava1.5':
                     raise AssertionError("Need to implement Llava1.5 captioning")
                 else:
