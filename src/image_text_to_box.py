@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from typing import Union, List
+from FoodMetadataCOCO import FoodMetadata
 import cv2
 
 global DEVICE
@@ -15,8 +16,7 @@ def dino_setup(config_path, checkpoint_path):
     )
     return grounding_dino_model
 
-def crop_box(bboxes, image):
-    width, height = image.size
+def crop_box(bboxes, height, width):
     for bbox in bboxes:
         bbox[0] = max(0, bbox[0]) # x1 floor is 0
         bbox[1] = max(0, bbox[1]) # y1 floor is 0
@@ -24,9 +24,7 @@ def crop_box(bboxes, image):
         bbox[3] = min(height - bbox[1], bbox[3]) # y2 ceiling is height - y1
     return bboxes
 
-def run_dino(
-    image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs
-) -> dict:
+def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs) -> dict:
     """given BGR image, produce boxes"""
 
     def enhance_class_name(class_names: List[str]) -> List[str]:
@@ -44,6 +42,9 @@ def run_dino(
         text_thresh = kwargs["text_thresh"]
     else:
         text_thresh = 0.25
+    if "image_annot" in kwargs:
+        img = kwargs["image_annot"]
+        h,w = img["height"],img["width"]
 
     detections = model.predict_with_classes(
         image=image,
@@ -55,7 +56,7 @@ def run_dino(
     class_ids = []
 
     if len(detections.class_id) == 0:
-        print("L2 Warning: No Ojects Detected")
+        print("Warning: No Ojects Detected")
         dino_success = 0
         return {"outside_class": outside_class, "dino_success": dino_success}
 
@@ -65,13 +66,13 @@ def run_dino(
             if id is None:
                 classes.append("*OTHER*")
                 class_ids.append(len(classes) - 1)
-                print("WARNING: DINO detected object(s) outside the class list")
+                #print("WARNING: DINO detected object(s) outside the class list")
                 outside_class = 1
             else:
                 class_ids.append(int(id))
 
         DINO_results = {
-            "bbox": crop_box(detections.xyxy, image),
+            "bbox": crop_box(detections.xyxy, h, w),
             "box_confidence": detections.confidence.tolist(),
             "class_id": class_ids,
             "classes": classes,
@@ -132,12 +133,12 @@ def get_boxes(metadata, **kwargs):
 
                 if model == "dino":
                     classes = metadata.anns[ann_id][class_type]
-                    detections = run_dino(image_rgb, classes, dino_model=dino_model)
+                    detections = run_dino(image_rgb, classes, image_annot = img, dino_model=dino_model)
                     if detections["dino_success"] == 0:
                         metadata.dataset["info"]["detection_issues"]["failures"].append(ann_id)
                         continue
                     if detections["outside_class"] == 1:
                         metadata.dataset["info"]["detection_issues"]["detect_nonclass"].append(ann_id)
                     metadata.add_dino_annot(ann_id, img_id, detections)
-                    print(metadata.anns[ann_id])
+                    #print(metadata.anns[ann_id])
     return metadata

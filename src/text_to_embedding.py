@@ -94,12 +94,15 @@ def run_llama2(text: str, **kwargs) -> np.ndarray:
 
 def get_embd_dicts(metadata, **kwargs) -> Tuple[dict, dict]:
     if "model" in kwargs:
-        if kwargs["model"] == "glove":
+        model = kwargs["model"]
+        if model == "glove":
             embed_dict = download_glove(kwargs["model_dir"])
-        elif kwargs["model"] == "mistral":
+        elif model == "mistral":
             raise AssertionError("Setup Mistral")
+        else:
+            raise AssertionError(f"Model '{model}' not supported for embedding text")
     else:
-        raise AssertionError("Must specify an embedding model")
+        raise AssertionError("Must specify a model for embedding text")
 
     if "mod_cat_file" in kwargs:
         with open(kwargs["mod_cat_file"], "r") as f:
@@ -115,14 +118,16 @@ def get_embd_dicts(metadata, **kwargs) -> Tuple[dict, dict]:
 
     keyword_to_embed = {}
     for word in unique_keywords_list:
-        keyword_to_embed[word] = run_glove(word, model=embed_dict)
+        if model == "glove":
+            keyword_to_embed[word] = run_glove(word, model=embed_dict)
         if len(keyword_to_embed[word]) == 0:
             print(f"Notice: Removing {word} from Keyword Dictionary")
             del keyword_to_embed[word]
 
     mod_cat_to_embed = {}
     for word in mod_cat_names:
-        mod_cat_to_embed[word] = run_glove(word, model=embed_dict)
+        if model == "glove":
+            mod_cat_to_embed[word] = run_glove(word, model=embed_dict)
         if len(mod_cat_to_embed[word]) == 0:
             print(f"Notice: Removing {word} from Modified Category Dictionary")
             del mod_cat_to_embed[word]

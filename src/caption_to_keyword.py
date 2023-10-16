@@ -29,17 +29,21 @@ def run_spacy(text: str, **kwargs) -> list:
 
 def get_keywords(metadata, **kwargs):
     if "model" not in kwargs:
+        model = kwargs["model"]
         raise AssertionError("Must Give a Model to Extract Keywords")
+    
+    if model == "spacy":
+        if "model_chkpt" in kwargs:
+            spacy = spacy_setup(kwargs["specific_model"])
+        else:
+            raise AssertionError("Must Specify Model Details to Extract Keywords")
+    else:
+        raise AssertionError(f"Model '{model}' not supported for keyword extraction")
 
     if "testing" in kwargs:
         testing = kwargs["testing"]
     else:
         testing = False
-
-    if "specific_model" in kwargs:
-        spacy = spacy_setup(kwargs["specific_model"])
-    else:
-        raise AssertionError("Must Specify Model Details to Extract Keywords")
 
     count = 0
     for cat_id, cat in metadata.cats.items():
@@ -53,6 +57,7 @@ def get_keywords(metadata, **kwargs):
         for img_id in img_ids:
             for ann in metadata.imgToAnns[img_id]:
                 if ann["category_id"] == cat_id:
-                    keywords = run_spacy(ann["caption"], spacy)
+                    if model == "spacy":
+                        keywords = run_spacy(ann["caption"], spacy)
                     metadata.add_text_annot(ann["id"], img_id, "keywords", keywords)
     return metadata

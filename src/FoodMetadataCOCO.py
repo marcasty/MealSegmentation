@@ -33,9 +33,8 @@ class FoodMetadata(COCO):
             "version": "1.0",
             "year": datetime.now().strftime('%Y'),
             "contributors": "marcasty, pranav270-create",
-            "date_created": datetime.now().strftime('%Y-%m-%d'),
-            "detection_issues": {"failures": [], "detect_nonclass": []}
-            }
+            "date_created": datetime.now().strftime('%Y-%m-%d')
+        }
 
         # initialize new COCO JSON
         if annotation_file is None:
@@ -47,14 +46,15 @@ class FoodMetadata(COCO):
             }
         # if making predictions on given data, remove given annotations 
         else:
+            if "detection_issues" not in self.dataset["info"]:
+                self.dataset["info"]["detection_issues"] = {"failures": [], "detect_nonclass": []}
             if pred is True:
                 self.anns = {}
                 self.imgToAnns = {}
                 self.dataset['annotations'] = []
                 for img_id, _ in self.imgs.items():
                     self.imgToAnns[img_id] = []
-                info["description"] = "Segmented Food Predictions"
-                self.dataset['info'] = info
+                self.dataset["info"]["description"] = "Segmented Food Predictions"
 
     def get_num_categories(self):
         """how many categories (foods) are in this dataset?"""
@@ -202,9 +202,10 @@ class FoodMetadata(COCO):
         
         if isinstance(self.anns[1]["bbox"], np.ndarray):
             for ann in self.anns.values():
-                bbox = ann["bbox"]
-                bbox_save = [int(num) for num in bbox[i]]
-                ann["bbox"] = bbox_save
+                if "bbox" in ann:
+                    bbox = ann["bbox"]
+                    bbox_save = [int(num) for num in bbox]
+                    ann["bbox"] = bbox_save
                 
         self.dataset['categories'] = list(self.cats.values())
         self.dataset['images'] = list(self.imgs.values())
