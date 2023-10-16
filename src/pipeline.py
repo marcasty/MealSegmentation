@@ -13,6 +13,7 @@ import sys
 sys.path.append("../")
 sys.path.append('/me/unit_tests')
 from unit_tests.embedding_to_category_check import check_metadata_categories
+from unit_tests.generic_tests import check_missing_annotations
 HOME = os.path.expanduser("~")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HOME = "/tmp"
@@ -72,9 +73,6 @@ def main(cfg: DictConfig) -> None:
             class_type=cfg.stage.image_text_to_box.class_type,
         )
 
-        metadata.export_coco(new_file_name=cfg.file.metadata_save)
-        #print(sorted(metadata.anns.keys()))
-
     if cfg.stage.image_box_to_mask.is_component:
         metadata = get_masks(
             metadata,
@@ -85,7 +83,8 @@ def main(cfg: DictConfig) -> None:
             mask_dir=cfg.path.mask_dir,
             testing=cfg.var.testing,
         )
-        #metadata.export_coco(new_file_name=cfg.file.metadata_save)
+        check_missing_annotations(metadata)
+        metadata.export_coco(new_file_name=cfg.file.metadata_save)
 
 
 if __name__ == "__main__":
