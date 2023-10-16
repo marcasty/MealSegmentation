@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from typing import Union
+from FoodMetadataCOCO import FoodMetadata
 import cv2
 
 global DEVICE
@@ -134,7 +135,7 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     return generated_text
 
 
-def get_captions(metadata, **kwargs):
+def get_captions(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
     if "model" in kwargs:
         model = kwargs["model"]
     else:

@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple
 import os
+from FoodMetadataCOCO import FoodMetadata
 
 
 def download_glove(model_dir):
@@ -92,7 +93,7 @@ def run_llama2(text: str, **kwargs) -> np.ndarray:
     return embedding
 
 
-def get_embd_dicts(metadata, **kwargs) -> Tuple[dict, dict]:
+def get_embd_dicts(metadata: FoodMetadata, **kwargs) -> Tuple[dict, dict]:
     if "model" in kwargs:
         model = kwargs["model"]
         if model == "glove":

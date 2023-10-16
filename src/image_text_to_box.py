@@ -10,18 +10,17 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def dino_setup(config_path, checkpoint_path):
     from groundingdino.util.inference import Model as DINOModel
-
-    grounding_dino_model = DINOModel(
-        model_config_path=config_path, model_checkpoint_path=checkpoint_path
-    )
+    grounding_dino_model = DINOModel(model_config_path=config_path, model_checkpoint_path=checkpoint_path)
     return grounding_dino_model
 
-def crop_box(bboxes, height, width):
-    for bbox in bboxes:
-        bbox[0] = max(0, bbox[0]) # x1 floor is 0
-        bbox[1] = max(0, bbox[1]) # y1 floor is 0
-        bbox[2] = min(width - bbox[0], bbox[2]) # x2 ceiling is width - x1
-        bbox[3] = min(height - bbox[1], bbox[3]) # y2 ceiling is height - y1
+def format_bbox(bboxes: np.ndarray, height: int, width: int) -> list:
+    bboxes = bboxes.tolist()
+    for i in range(len(bboxes)):
+        bboxes[i][0] = max(0, bboxes[i][0])  # x1 floor is 0
+        bboxes[i][1] = max(0, bboxes[i][1])  # y1 floor is 0
+        bboxes[i][2] = min(width - bboxes[i][0], bboxes[i][2])  # x2 ceiling is width - x1
+        bboxes[i][3] = min(height - bboxes[i][1], bboxes[i][3])  # y2 ceiling is height - y1
+        bboxes[i] = [int(num) for num in bboxes[i]]
     return bboxes
 
 def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs) -> dict:
@@ -42,9 +41,6 @@ def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwarg
         text_thresh = kwargs["text_thresh"]
     else:
         text_thresh = 0.25
-    if "image_annot" in kwargs:
-        img = kwargs["image_annot"]
-        h,w = img["height"],img["width"]
 
     detections = model.predict_with_classes(
         image=image,
@@ -71,8 +67,13 @@ def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwarg
             else:
                 class_ids.append(int(id))
 
+        if "image_annot" in kwargs:
+            img = kwargs["image_annot"]
+            h,w = img["height"],img["width"]
+            bboxes = format_bbox(detections.xyxy, h, w)
+
         DINO_results = {
-            "bbox": crop_box(detections.xyxy, h, w),
+            "bbox": bboxes,
             "box_confidence": detections.confidence.tolist(),
             "class_id": class_ids,
             "classes": classes,
@@ -83,7 +84,7 @@ def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwarg
         return DINO_results
 
 
-def get_boxes(metadata, **kwargs):
+def get_boxes(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
     if "model" in kwargs:
         model = kwargs["model"]
     else:

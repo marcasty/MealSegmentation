@@ -1,4 +1,5 @@
 from scipy.spatial.distance import euclidean
+from FoodMetadataCOCO import FoodMetadata
 
 
 def run_nn_lookup(text_embed: dict, cat_embed: dict) -> dict:
@@ -19,11 +20,13 @@ def run_nn_lookup(text_embed: dict, cat_embed: dict) -> dict:
     return text_to_cat
 
 
-def get_categories(metadata, keyword_to_embed: dict, mod_cat_to_embed: dict, **kwargs):
+def get_categories(metadata: FoodMetadata, keyword_to_embed: dict, mod_cat_to_embed: dict, **kwargs) -> FoodMetadata:
     if "mod_cat_file" in kwargs:
         with open(kwargs["mod_cat_file"], "r") as f:
             cats = f.readlines()
             mod_cat_names = [cat.strip() for cat in cats]
+    else:
+        raise AssertionError("Need modified category names to assign categories from embeddings")
 
     cat_ids = metadata.loadCats(metadata.getCatIds())
     cat_names = [_["name_readable"] for _ in cat_ids]

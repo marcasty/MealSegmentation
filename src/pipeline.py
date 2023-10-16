@@ -73,6 +73,7 @@ def main(cfg: DictConfig) -> None:
         )
 
         metadata.export_coco(new_file_name=cfg.file.metadata_save)
+        #print(sorted(metadata.anns.keys()))
 
     if cfg.stage.image_box_to_mask.is_component:
         metadata = get_masks(
@@ -84,7 +85,7 @@ def main(cfg: DictConfig) -> None:
             mask_dir=cfg.path.mask_dir,
             testing=cfg.var.testing,
         )
-        metadata.export_coco(new_file_name=cfg.file.metadata_save)
+        #metadata.export_coco(new_file_name=cfg.file.metadata_save)
 
 
 if __name__ == "__main__":

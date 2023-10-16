@@ -14,7 +14,7 @@ def sam_setup(sam_encoder_version, sam_checkpoint_path):
         from mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
         print("Importing MobileSAM")
     else:
-        AssertionError("Desired Box-to-Mask model not supported")
+        raise AssertionError("Desired Box-to-Mask model not supported")
     sam = sam_model_registry[sam_encoder_version](checkpoint=sam_checkpoint_path).to(device=DEVICE)
     sam.eval()
     mask_predictor = SamPredictor(sam)
