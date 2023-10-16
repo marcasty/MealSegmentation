@@ -168,7 +168,7 @@ class FoodMetadata(COCO):
 
         for i in range(len(detections["bbox"])):
             if 'bbox' in self.anns[ann_id]:
-                new_annotation = self.anns[ann_id]
+                new_annotation = self.anns[ann_id].copy()
                 ann_id = self.next_ann_id()
                 new_annotation['id'] = ann_id
                 self.anns[ann_id] = new_annotation
@@ -188,29 +188,18 @@ class FoodMetadata(COCO):
         self.add_annot(ann_id, image_id, "mask_confidence", round(float(mask_confidence), 4))
 
     # save the dict as a json file
-    def export_coco(self, new_file_name=None, replace=False):
+    def export_coco(self, new_file_name=None):
         if new_file_name is None:
-            # do you want to replace old json file?
-            if replace is True:
-                assert self.file_name is not None, "this object was not created from a file so a file cannot be replaced"
-                file_name = self.file_name
-            else:
-                current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                file_name = f"metadata_{current_datetime}.json"
+            current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            file_name = f"metadata_{current_datetime}.json"
         else:
             file_name = new_file_name
-        
-        if isinstance(self.anns[1]["bbox"], np.ndarray):
-            for ann in self.anns.values():
-                if "bbox" in ann:
-                    bbox = ann["bbox"]
-                    bbox_save = [int(num) for num in bbox]
-                    ann["bbox"] = bbox_save
-                
+                        
         self.dataset['categories'] = list(self.cats.values())
         self.dataset['images'] = list(self.imgs.values())
         self.dataset['annotations'] = list(self.anns.values())
 
+        print(f'saving data as {file_name}')
         with open(file_name, "w") as json_file:
             json.dump(self.dataset, json_file, indent=4)
 

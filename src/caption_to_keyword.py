@@ -1,4 +1,5 @@
 from string import punctuation
+from FoodMetadataCOCO import FoodMetadata
 
 
 def spacy_setup(specific_model):
@@ -27,7 +28,7 @@ def run_spacy(text: str, **kwargs) -> list:
     return list(set(result))
 
 
-def get_keywords(metadata, **kwargs):
+def get_keywords(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
     if "model" not in kwargs:
         model = kwargs["model"]
         raise AssertionError("Must Give a Model to Extract Keywords")
