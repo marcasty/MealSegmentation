@@ -33,7 +33,8 @@ class FoodMetadata(COCO):
             "version": "1.0",
             "year": datetime.now().strftime('%Y'),
             "contributors": "marcasty, pranav270-create",
-            "date_created": datetime.now().strftime('%Y-%m-%d')
+            "date_created": datetime.now().strftime('%Y-%m-%d'),
+            "detection_issues": {"failures": [], "detect_nonclass": []}
             }
 
         # initialize new COCO JSON
@@ -176,14 +177,15 @@ class FoodMetadata(COCO):
             self.add_annot(ann_id, image_id, "bbox", detections["bbox"][i])
             self.add_annot(ann_id, image_id, "box_confidence", round(float(detections["box_confidence"][i]),4))
 
-    def add_sam_annot(self, ann_ids, arr_masks, arr_mask_score, directory):
-        for i, ann_id in enumerate(ann_ids):
-            image_id = self.anns[ann_id]["image_id"]
+    def add_sam_annot(self, ann_id, image_id, mask, mask_confidence, mask_dir):
+        if mask_dir:
             mask_id = f'{image_id}_{ann_id}.pt'
-            mask_filepath = os.path.join(directory, mask_id)
-            torch.save(torch.Tensor(arr_masks[i]), mask_filepath)
-            self.anns[ann_id]['masks'] = mask_id
-            self.anns[ann_id]['mask_confidence'] = float(arr_mask_score[i])
+            mask_filepath = os.path.join(mask_dir, mask_id)
+            torch.save(torch.Tensor(mask), mask_filepath)
+            self.add_annot(ann_id, image_id, "mask", mask_id)
+        else:
+            self.add_annot(ann_id, image_id, "mask", mask)    
+        self.add_annot(ann_id, image_id, "mask_confidence", round(float(mask_confidence), 4))
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None, replace=False):
@@ -197,7 +199,13 @@ class FoodMetadata(COCO):
                 file_name = f"metadata_{current_datetime}.json"
         else:
             file_name = new_file_name
-                        
+        
+        if isinstance(self.anns[1]["bbox"], np.ndarray):
+            for ann in self.anns.values():
+                bbox = ann["bbox"]
+                bbox_save = [int(num) for num in bbox[i]]
+                ann["bbox"] = bbox_save
+                
         self.dataset['categories'] = list(self.cats.values())
         self.dataset['images'] = list(self.imgs.values())
         self.dataset['annotations'] = list(self.anns.values())

@@ -73,6 +73,7 @@ def main(cfg: DictConfig) -> None:
             model_config=cfg.stage.image_text_to_box.model_config,
             class_type=cfg.stage.image_text_to_box.class_type,
         )
+    metadata.export_coco(new_file_name=cfg.file.metadata_save)
 
 
 if __name__ == "__main__":

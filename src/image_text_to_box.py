@@ -15,6 +15,14 @@ def dino_setup(config_path, checkpoint_path):
     )
     return grounding_dino_model
 
+def crop_box(bboxes, image):
+    width, height = image.size
+    for bbox in bboxes:
+        bbox[0] = max(0, bbox[0]) # x1 floor is 0
+        bbox[1] = max(0, bbox[1]) # y1 floor is 0
+        bbox[2] = min(width - bbox[0], bbox[2]) # x2 ceiling is width - x1
+        bbox[3] = min(height - bbox[1], bbox[3]) # y2 ceiling is height - y1
+    return bboxes
 
 def run_dino(
     image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs
@@ -62,23 +70,23 @@ def run_dino(
             else:
                 class_ids.append(int(id))
 
-    DINO_results = {
-        "bbox": detections.xyxy,
-        "box_confidence": detections.confidence.tolist(),
-        "class_id": class_ids,
-        "classes": classes,
-        "outside_class": outside_class,
-        "dino_success": dino_success,
-    }
+        DINO_results = {
+            "bbox": crop_box(detections.xyxy, image),
+            "box_confidence": detections.confidence.tolist(),
+            "class_id": class_ids,
+            "classes": classes,
+            "outside_class": outside_class,
+            "dino_success": dino_success,
+        }
 
-    return DINO_results
+        return DINO_results
 
 
 def get_boxes(metadata, **kwargs):
     if "model" in kwargs:
         model = kwargs["model"]
     else:
-        raise AssertionError("Must specify a model to caption images")
+        raise AssertionError("Must specify a model to predict bounding boxes")
 
     if "image_dir" in kwargs:
         image_dir = kwargs["image_dir"]
@@ -93,16 +101,13 @@ def get_boxes(metadata, **kwargs):
     if "class_type" in kwargs:
         class_type = kwargs["class_type"]
     else:
-        raise AssertionError("Must Specify Which Classes to Send to DINO")
+        raise AssertionError("Must specify which classes to send to model f(image+text) = box")
 
-    # this will change once we support more image_to_caption models
-    if "model_chkpt" in kwargs:
-        dino_model = dino_setup(kwargs["model_config"], kwargs["model_chkpt"])
-
-    metadata.dataset["info"]["detection_issues"] = {
-        "failures": [],
-        "detect_nonclass": [],
-    }
+    if model == "dino":
+        if "model_chkpt" in kwargs:
+            dino_model = dino_setup(kwargs["model_config"], kwargs["model_chkpt"])
+        else:
+            raise AssertionError("Must specify DINO model checkpoint")
 
     count = 0
     for cat_id, cat in metadata.cats.items():
@@ -126,18 +131,13 @@ def get_boxes(metadata, **kwargs):
                         ann_id = ann["id"]
 
                 if model == "dino":
-                    print("hi")
                     classes = metadata.anns[ann_id][class_type]
                     detections = run_dino(image_rgb, classes, dino_model=dino_model)
                     if detections["dino_success"] == 0:
-                        metadata.dataset["info"]["detection_issues"]["failures"].append(
-                            ann_id
-                        )
+                        metadata.dataset["info"]["detection_issues"]["failures"].append(ann_id)
                         continue
                     if detections["outside_class"] == 1:
-                        metadata.dataset["info"]["detection_issues"][
-                            "detect_nonclass"
-                        ].append(ann_id)
+                        metadata.dataset["info"]["detection_issues"]["detect_nonclass"].append(ann_id)
                     metadata.add_dino_annot(ann_id, img_id, detections)
                     print(metadata.anns[ann_id])
     return metadata
