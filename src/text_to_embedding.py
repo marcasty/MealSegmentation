@@ -1,7 +1,7 @@
 import numpy as np
-from FoodMetadataCOCO import FoodMetadata
-from scipy import spatial
+from typing import Tuple
 import os
+from FoodMetadataCOCO import FoodMetadata
 
 
 def download_glove(model_dir):
@@ -17,134 +17,118 @@ def download_glove(model_dir):
     import urllib.request
     import zipfile
 
-    # Download
-    if not os.path.exists(f'{model_dir}/glove.6B.zip'):
-        print('Downloading GloVe')
-        urllib.request.urlretrieve('https://nlp.stanford.edu/data/glove.6B.zip', f'{model_dir}/glove.6B.zip')
-    if not os.path.exists(f'{model_dir}/glove.6B.200d.txt'):
-        print('Unzipping GloVe')
-        with zipfile.ZipFile(f'{model_dir}/glove.6B.zip', 'r') as zip_ref:
-            zip_ref.extractall(f'{model_dir}')
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    if not os.path.exists(f"{model_dir}/glove.6B.zip"):
+        print("Downloading GloVe")
+        urllib.request.urlretrieve("https://nlp.stanford.edu/data/glove.6B.zip", f"{model_dir}/glove.6B.zip")
+    if not os.path.exists(f"{model_dir}/glove.6B.200d.txt"):
+        print("Unzipping GloVe")
+        with zipfile.ZipFile(f"{model_dir}/glove.6B.zip", "r") as zip_ref:
+            zip_ref.extractall(f"{model_dir}")
 
-    print('Creating Dictionary of GloVe Embeddings')
+    print("Creating Dictionary of GloVe Embeddings")
     embed_dict = {}
-    with open(f'{model_dir}/glove.6B.200d.txt', 'r', encoding='utf-8') as f:
+    with open(f"{model_dir}/glove.6B.200d.txt", "r", encoding="utf-8") as f:
         for line in f:
             values = line.split()
             word = values[0]
-            vector = np.asarray(values[1:], 'float32')
+            vector = np.asarray(values[1:], "float32")
             embed_dict[word] = vector
     return embed_dict
 
 
-def get_average_embedding(embed_dict, sentence):
-    """returns average embedding of all words in fragment"""
-    words = sentence.split()
+def run_glove(text: str, **kwargs) -> np.ndarray:
+    """given text, produce embedding"""
+    words = text.split()
 
-    # skip categories that don't appear in validation set
-    try:
-      if words[0][0] == '$':
-        return []
-    except:
-      print(sentence)
+    if "model" in kwargs:
+        model = kwargs["model"]
+    else:
+        raise AssertionError("No GloVe Embedding Dictionary Provided")
+
     vectors = []
     for word in words:
         try:
-            vectors.append(embed_dict[word.lower()])
-        except:
-            print(f"Warning: Word '{word}' not found in embeddings.")
-        continue
-    if not vectors:
-        print(f"Warning: No valid embeddings found in sentence: {sentence}")
-        return 0
-    return np.mean(vectors, axis=0)
+            vectors.append(model[word.lower()])
+        except KeyError:
+            print(f"L1 Warning: Word '{word}' has no Embedding")
+            continue
+
+    if len(vectors) < 1:
+        if len(words) > 1:
+            print(f"L2 Warning: Entire String '{text}' has no Embeddings")
+            return []
+        else:
+            return np.array([])
+    elif len(vectors) == 1:
+        return vectors[0]
+    else:
+        return np.mean(vectors, axis=0)
 
 
-def find_similar_word(spacy_dict, cat_dict):
-    """
-    translates spacy words to modified categories
-    Args:
-    spacy_dict -> spacy word : embd
-    cat_dict -> modified category word : embd
-    Returns:
-    spacy_to_cat -> spacy word : modified category word
-    """
-    categories = []
-    for word, embedding in spacy_dict.items():
-        nearest = sorted(cat_dict.keys(), key=lambda word: spatial.distance.euclidean(cat_dict[word], embedding))
-        categories.append(nearest[0])
-    return categories
+def run_mistral(text: str, **kwargs) -> np.ndarray:
+    """given text, produce embedding"""
+
+    if "mistral" in kwargs:
+        model = kwargs["mistral"]
+    else:
+        raise AssertionError("No Mistral Model Provided")
+
+    embedding = model(text)
+    return embedding
 
 
-def assign_classes(metadata, embedding_vars):
+def run_llama2(text: str, **kwargs) -> np.ndarray:
+    """given text, produce embedding"""
 
-    category_ids = metadata.loadCats(metadata.getCatIds())
-    category_names = [_["name_readable"] for _ in category_ids]
-    if embedding_vars[0] == "GloVe":
-        embed_dict = download_glove(embedding_vars[1])
+    if "llama2" in kwargs:
+        model = kwargs["llama2"]
+    else:
+        raise AssertionError("No LLama2 Model Provided")
 
-    with open(embedding_vars[2], "r" ) as f:
-        cats = f.readlines()
-        mod_category_names = [cat.strip() for cat in cats]
-
-    # create a dictionary category name : modded category name
-    cat2mod = {}
-    for cat, mod in zip(category_names, mod_category_names):
-        cat2mod[cat] = mod
-
-    # modded category name : embedding
-    embedded_cats_dict = {}
-    for cat in mod_category_names:
-        if cat[0] == '$': continue
-        embedded_cats_dict[cat] = get_average_embedding(embed_dict, cat)
-
-    # for each annotation, embed the spacy words and find the nearest modified category
-    for ann_id, ann in metadata.anns.items():
-        words = ann["spacy"]
-        spacy_dict = {}
-        for word in words:
-            embd = get_average_embedding(embed_dict, word)
-            if not isinstance(embd, np.ndarray):
-              print(f'word {word} in set {words} is not in embed dict')
-            else:
-              spacy_dict[word] = embd
-        if len(spacy_dict) == 0: 
-            print('Warning: no modified class name assigned')
-        # add the nearest modified classes and the associated classes to json
-        mod_classes = find_similar_word(spacy_dict, embedded_cats_dict)
-        classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
-        metadata.add_class_from_embd(ann_id, mod_classes, classes)
-    return metadata
+    embedding = model(text)
+    return embedding
 
 
-if __name__ == '__main__':
-    HOME = 'C:/Users/marka/fun'
-    HOME = '/me'
+def get_embd_dicts(metadata: FoodMetadata, **kwargs) -> Tuple[dict, dict]:
+    if "model" in kwargs:
+        model = kwargs["model"]
+        if model == "glove":
+            embed_dict = download_glove(kwargs["model_dir"])
+        elif model == "mistral":
+            raise AssertionError("Setup Mistral")
+        else:
+            raise AssertionError(f"Model '{model}' not supported for embedding text")
+    else:
+        raise AssertionError("Must specify a model for embedding text")
 
-    model_dir = f'{HOME}/MealSegmentation/tmp/embd_models'
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
+    if "mod_cat_file" in kwargs:
+        with open(kwargs["mod_cat_file"], "r") as f:
+            cats = f.readlines()
+            mod_cat_names = [cat.strip() for cat in cats]
+    else:
+        raise AssertionError("Must Supply File of Modified Category Names to Embed")
 
-    # download glove and save to some directory; this also happens in "assign_class()"
-    # download_glove(model_dir)
+    unique_keywords = set()
+    for ann in metadata.anns.values():
+        unique_keywords.update(ann["spacy"])  # change to keywords
+    unique_keywords_list = list(unique_keywords)
 
-    # the model
-    embd_model_type = "GloVe"
+    keyword_to_embed = {}
+    for word in unique_keywords_list:
+        if model == "glove":
+            keyword_to_embed[word] = run_glove(word, model=embed_dict)
+        if len(keyword_to_embed[word]) == 0:
+            print(f"Notice: Removing {word} from Keyword Dictionary")
+            del keyword_to_embed[word]
 
-    # the path to the hand-modified category names
-    modded_cat_path = f'{HOME}/round2_categories_modified.txt'
-    embedding_vars = [embd_model_type, model_dir, modded_cat_path]
+    mod_cat_to_embed = {}
+    for word in mod_cat_names:
+        if model == "glove":
+            mod_cat_to_embed[word] = run_glove(word, model=embed_dict)
+        if len(mod_cat_to_embed[word]) == 0:
+            print(f"Notice: Removing {word} from Modified Category Dictionary")
+            del mod_cat_to_embed[word]
 
-    # import a json file that has blip2/spacy annotations
-    metadata = FoodMetadata(f'{HOME}/public_validation_set_2.1_blip_spacy.json')
-    category_ids = metadata.loadCats(metadata.getCatIds())
-    category_names = [_["name_readable"] for _ in category_ids]
-
-    # find the nearest class to each blip2/spacy word
-    assign_classes(metadata, category_names, embedding_vars)
-
-    # look at one example
-    print(metadata.dataset['annotations'][0])
-
-    # save it so you can check it out :)
-    metadata.export_coco(new_file_name='embedding_test.json')
+    return keyword_to_embed, mod_cat_to_embed

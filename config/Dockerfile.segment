@@ -35,6 +35,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends --allow-unauthentica
 
 RUN pip3 install \
     accelerate \
+    hydra-core --upgrade \
     icrawler \
     imagededup \
     matplotlib \
