@@ -134,9 +134,22 @@ class FoodMetadata(COCO):
         return len(self.anns)
     
     def next_ann_id(self):
-        if self.get_num_annotations() == 0: return 1
-        else: return max(self.anns.keys()) + 1
+        if self.get_num_annotations() == 0: 
+            return 1
+        else: 
+            return max(self.anns.keys()) + 1
     
+    def drop_ann(self, ann_ids: list):
+        for ann_id in ann_ids:
+            image_id = self.anns[ann_id]['image_id']
+            cat_id = self.anns[ann_id]['category_id']
+            self.anns.pop(ann_id)
+            anns = []
+            for ann in self.imgToAnns[image_id]:
+                if ann['id'] != ann_id or ann['category_id'] != cat_id:
+                    anns.append(ann)
+            self.imgToAnns[image_id] = anns
+
     def update_imgToAnns(self, ann_id, image_id, key, value):
         for ann in self.imgToAnns[image_id]:
             if ann['id'] == ann_id:
