@@ -13,9 +13,7 @@ def run_nn_lookup(text_embed: dict, cat_embed: dict) -> dict:
     """
     text_to_cat = {}
     for word, embedding in text_embed.items():
-        nearest = sorted(
-            cat_embed.keys(), key=lambda word: euclidean(cat_embed[word], embedding)
-        )
+        nearest = sorted(cat_embed.keys(), key=lambda word: euclidean(cat_embed[word], embedding))
         text_to_cat[word] = nearest[0]
     return text_to_cat
 

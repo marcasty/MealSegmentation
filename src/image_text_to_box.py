@@ -10,8 +10,10 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def dino_setup(config_path, checkpoint_path):
     from groundingdino.util.inference import Model as DINOModel
+
     grounding_dino_model = DINOModel(model_config_path=config_path, model_checkpoint_path=checkpoint_path)
     return grounding_dino_model
+
 
 def format_bbox(bboxes: np.ndarray, height: int, width: int) -> list:
     bboxes = bboxes.tolist()
@@ -22,6 +24,7 @@ def format_bbox(bboxes: np.ndarray, height: int, width: int) -> list:
         bboxes[i][3] = min(height - bboxes[i][1], bboxes[i][3])  # y2 ceiling is height - y1
         bboxes[i] = [int(num) for num in bboxes[i]]
     return bboxes
+
 
 def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs) -> dict:
     """given BGR image, produce boxes"""
@@ -62,14 +65,14 @@ def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwarg
             if id is None:
                 classes.append("*OTHER*")
                 class_ids.append(len(classes) - 1)
-                #print("WARNING: DINO detected object(s) outside the class list")
+                # print("WARNING: DINO detected object(s) outside the class list")
                 outside_class = 1
             else:
                 class_ids.append(int(id))
 
         if "image_annot" in kwargs:
             img = kwargs["image_annot"]
-            h,w = img["height"],img["width"]
+            h, w = img["height"], img["width"]
             bboxes = format_bbox(detections.xyxy, h, w)
 
         DINO_results = {
@@ -134,12 +137,12 @@ def get_boxes(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
 
                 if model == "dino":
                     classes = metadata.anns[ann_id][class_type]
-                    detections = run_dino(image_rgb, classes, image_annot = img, dino_model=dino_model)
+                    detections = run_dino(image_rgb, classes, image_annot=img, dino_model=dino_model)
                     if detections["dino_success"] == 0:
                         metadata.dataset["info"]["detection_issues"]["failures"].append(ann_id)
                         continue
                     if detections["outside_class"] == 1:
                         metadata.dataset["info"]["detection_issues"]["detect_nonclass"].append(ann_id)
                     metadata.add_dino_annot(ann_id, img_id, detections)
-                    #print(metadata.anns[ann_id])
+                    # print(metadata.anns[ann_id])
     return metadata

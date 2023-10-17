@@ -32,7 +32,7 @@ def get_keywords(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
     if "model" not in kwargs:
         model = kwargs["model"]
         raise AssertionError("Must Give a Model to Extract Keywords")
-    
+
     if model == "spacy":
         if "model_chkpt" in kwargs:
             spacy = spacy_setup(kwargs["specific_model"])
