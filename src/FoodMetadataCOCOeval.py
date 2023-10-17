@@ -3,6 +3,7 @@ from pycocotools import mask as maskUtils
 import numpy as np
 from collections import defaultdict
 from FoodMetadataCOCO import FoodMetadata
+import torch
 
 class FoodCOCOEval(COCOeval):
     def __init__(self, cocoGt=None, cocoDt=None, iouType='segm'):
@@ -68,11 +69,12 @@ class FoodCOCOEval(COCOeval):
                 ann['segmentation'] = rle
 
         def _toMaskPrediction(anns, coco, iouType):
+            print("loading masks and computing area")
             for ann in anns:
                 if "mask" in ann: 
-                    if ann["mask"].split('.')[1] == '.pt':
-                        mask = torch.load(f"{self.mask_dir}/100198_1603.pt")
-                        mask = np.asarray(mask.astype(np.uint8), order="F")
+                    if ann["mask"].split('.')[-1] == 'pt':
+                        mask = torch.load(f"{self.mask_dir}/{ann['mask']}")
+                        mask = mask.numpy().astype(np.uint8, order="F")
                         rle = maskUtils.encode(mask)
                         area = maskUtils.area(rle)
                         if iouType == "segm":
@@ -80,17 +82,7 @@ class FoodCOCOEval(COCOeval):
                         ann["area"] = area
 
         p = self.params
-        print(f"before: {len(self.cocoDt.anns.keys())}")
         _Prune(self.cocoDt)
-
-        # test to see if there's masks
-        print(f"after: {len(self.cocoDt.anns.keys())}")
-        count = 0
-        for ann in self.cocoDt.anns.values():
-            if "mask" in ann:
-                count += 1
-        print(f"masks: {count}")
-        exit()
 
         if p.useCats:
             gts=self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds, catIds=p.catIds))
@@ -99,11 +91,16 @@ class FoodCOCOEval(COCOeval):
             gts=self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds))
             dts=self.cocoDt.loadAnns(self.cocoDt.getAnnIds(imgIds=p.imgIds))
         
+        # change boxes from xyxy to xywh 
         if p.iouType == 'bbox':
             _toBox(dts)
-        # change boxes from xyxy to xywh 
-        # convert ground truth to mask if iouType == 'segm'
+        # this adds area and also computes segm for Dt
         _toMaskPrediction(dts, self.cocoDt, p.iouType)
+        for dt in dts:
+            if "area" not in dt:
+                print(f'area missing from: {dt["id"]}')
+                print(dt)
+                exit()
         if p.iouType == 'segm':
             _toMask(gts, self.cocoGt)
         # set ignore flag
@@ -211,8 +208,8 @@ if __name__ == '__main__':
 
     cocoEval = FoodCOCOEval(gt, dt, annType)
     cocoEval.params.imgIds  = list(dt.imgs.keys())
-    cocoEval.params.useCats = 1
-    cocoEval.params.catIds = list(dt.cats.keys())
+    #cocoEval.params.useCats = 1
+    #cocoEval.params.catIds = list(dt.cats.keys())
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
