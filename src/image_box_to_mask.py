@@ -106,15 +106,14 @@ def get_masks(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
                 image_bgr = cv2.imread(f'{image_dir}/{img["file_name"]}')
                 image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
+                # mask all anns that have correct img and cat id
                 for ann in metadata.imgToAnns[img_id]:
                     if ann["category_id"] == cat_id:
                         ann_id = ann["id"]
-                if ann["id"] in metadata.dataset["info"]["detection_issues"]["failures"]:
-                    continue
-
-                if model == "sam":
-                    mask, mask_confidence = run_sam_conditioned(
-                        image_rgb, annotation=ann, sam_model=mask_predictor, device=DEVICE
-                    )
-                    metadata.add_sam_annot(ann_id, img_id, mask, mask_confidence, mask_dir)
+                        if ann_id in metadata.dataset["info"]["detection_issues"]["failures"]:
+                            print(f'*skipped {ann_id}, it has no box*')
+                            continue
+                        if model == "sam":
+                            mask, mask_confidence = run_sam_conditioned(image_rgb, annotation=ann, sam_model=mask_predictor, device=DEVICE)
+                            metadata.add_sam_annot(ann_id, img_id, mask, mask_confidence, mask_dir)
     return metadata
