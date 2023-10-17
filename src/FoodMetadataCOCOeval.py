@@ -203,13 +203,11 @@ if __name__ == '__main__':
     dt = FoodMetadata('/me/examples/public_validation_set_release_2.1_blip2_glove_dino_sam.json')
 
     annType = ['segm','bbox','keypoints']
-    annType = annType[1]      #specify type here
+    annType = annType[0]      #specify type here
     imgIds = sorted(dt.imgs.keys())
 
     cocoEval = FoodCOCOEval(gt, dt, annType)
     cocoEval.params.imgIds  = list(dt.imgs.keys())
-    #cocoEval.params.useCats = 1
-    #cocoEval.params.catIds = list(dt.cats.keys())
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()
