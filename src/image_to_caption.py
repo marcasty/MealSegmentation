@@ -12,7 +12,9 @@ def blip2_setup(blip2_model):
     from transformers import AutoProcessor, Blip2ForConditionalGeneration
 
     processor = AutoProcessor.from_pretrained(blip2_model)
-    model = Blip2ForConditionalGeneration.from_pretrained(blip2_model, torch_dtype=torch.float16).to(DEVICE)
+    model = Blip2ForConditionalGeneration.from_pretrained(
+        blip2_model, torch_dtype=torch.float16
+    ).to(DEVICE)
     model.eval()
 
     return model, processor
@@ -44,9 +46,13 @@ def run_blip2(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
             return "FAILURE"
 
         prompt = "the food or foods in this image include: "
-        inputs = blip2_processor(image, text=prompt, return_tensors="pt").to(device, torch.float16)
+        inputs = blip2_processor(image, text=prompt, return_tensors="pt").to(
+            device, torch.float16
+        )
         generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-        generated_text = blip2_processor.batch_decode(generated_ids, skip_special_tokens=True)
+        generated_text = blip2_processor.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )
         generated_text = generated_text[0].strip()
         attempts += 1
     return generated_text
@@ -56,7 +62,12 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     """given RGB image, produce text"""
 
     # Import helper functions to run_llava
-    from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+    from llava.constants import (
+        IMAGE_TOKEN_INDEX,
+        DEFAULT_IMAGE_TOKEN,
+        DEFAULT_IM_START_TOKEN,
+        DEFAULT_IM_END_TOKEN,
+    )
     from llava.conversation import conv_templates, SeparatorStyle
     from llava.mm_utils import tokenizer_image_token
 
@@ -94,7 +105,13 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
 
     qs = "What are all the food items in this image? Please be as specific and detailed as possible."
     if model.config.mm_use_im_start_end:
-        qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + "\n" + qs
+        qs = (
+            DEFAULT_IM_START_TOKEN
+            + DEFAULT_IMAGE_TOKEN
+            + DEFAULT_IM_END_TOKEN
+            + "\n"
+            + qs
+        )
     else:
         qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
 
@@ -104,10 +121,14 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     prompt = conv.get_prompt()
 
     input_ids = (
-        tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).to(device=device)
+        tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
+        .unsqueeze(0)
+        .to(device=device)
     )
 
-    image_tensor = image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+    image_tensor = image_processor.preprocess(image, return_tensors="pt")[
+        "pixel_values"
+    ][0]
 
     stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
     with torch.inference_mode():
@@ -126,8 +147,12 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], **kwargs) -> str:
     input_token_len = input_ids.shape[1]
     n_diff_input_output = (input_ids != output_ids[:, :input_token_len]).sum().item()
     if n_diff_input_output > 0:
-        print(f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids")
-    outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
+        print(
+            f"[Warning] {n_diff_input_output} output_ids are not the same as the input_ids"
+        )
+    outputs = tokenizer.batch_decode(
+        output_ids[:, input_token_len:], skip_special_tokens=True
+    )[0]
     outputs = outputs.strip()
     if outputs.endswith(stop_str):
         outputs = outputs[: -len(stop_str)]

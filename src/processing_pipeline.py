@@ -12,18 +12,18 @@ import matplotlib.pyplot as plt
 
 
 global DEVICE
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_hotwords(spacy_nlp, text):
     """given text, produce hot words"""
     result = []
-    pos_tag = ['PROPN', 'NOUN']
+    pos_tag = ["PROPN", "NOUN"]
     doc = spacy_nlp(text.lower())
     for token in doc:
-        if (token.text in spacy_nlp.Defaults.stop_words or token.text in punctuation):
+        if token.text in spacy_nlp.Defaults.stop_words or token.text in punctuation:
             continue
-        elif (token.pos_ in pos_tag):
+        elif token.pos_ in pos_tag:
             result.append(token.text)
     return result
 
@@ -33,9 +33,13 @@ def run_blip(blip_processor, blip2_model, path):
     image_bgr = cv2.imread(path)
     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     prompt = "the food or foods in this image include: "
-    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
+    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(
+        DEVICE, torch.float16
+    )
     generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-    generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
+    generated_text = blip_processor.batch_decode(
+        generated_ids, skip_special_tokens=True
+    )
     generated_text = generated_text[0].strip()
     return generated_text
 
@@ -44,29 +48,33 @@ def enhance_class_name(class_names: List[str]) -> List[str]:
     return [f"all {class_name}s" for class_name in class_names]
 
 
-def run_dino(image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thresh=0.25):
+def run_dino(
+    image_bgr, CLASSES, grounding_dino_model, box_thresh=0.35, text_thresh=0.25
+):
     detections = grounding_dino_model.predict_with_classes(
-                image=image_bgr,
-                classes=enhance_class_name(class_names=CLASSES),
-                box_threshold=box_thresh,
-                text_threshold=text_thresh)
+        image=image_bgr,
+        classes=enhance_class_name(class_names=CLASSES),
+        box_threshold=box_thresh,
+        text_threshold=text_thresh,
+    )
     outside_class = 0
 
     # catch scenarios where DINO detects object out of classes
     class_ids = []
     for id in detections.class_ids:
         if id is None:
-          CLASSES.append('object_outside_class')
-          class_ids.append(len(CLASSES) - 1)
-          print('WARNING: DINO detected object(s) outside the class list')
-          outside_class = 1
-        else: class_ids.append(int(id))
+            CLASSES.append("object_outside_class")
+            class_ids.append(len(CLASSES) - 1)
+            print("WARNING: DINO detected object(s) outside the class list")
+            outside_class = 1
+        else:
+            class_ids.append(int(id))
 
     detect = {
-       "bbox" : detections.xyxy,
-       "confidence" : detections.confidence,
-       "class_id" : class_ids,
-            }
+        "bbox": detections.xyxy,
+        "confidence": detections.confidence,
+        "class_id": class_ids,
+    }
     return detect, outside_class
 
 
@@ -79,53 +87,61 @@ def run_sam_full(image_rgb, mask_generator):
 def run_classifier(image_rgb, blip2_model, blip_processor):
     """given rgb image, produce text"""
     prompt = "the food or foods in this image include"
-    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(DEVICE, torch.float16)
+    inputs = blip_processor(image_rgb, text=prompt, return_tensors="pt").to(
+        DEVICE, torch.float16
+    )
     generated_ids = blip2_model.generate(**inputs, max_new_tokens=20)
-    generated_text = blip_processor.batch_decode(generated_ids, skip_special_tokens=True)
+    generated_text = blip_processor.batch_decode(
+        generated_ids, skip_special_tokens=True
+    )
     generated_text = generated_text[0].strip()
     return generated_text
 
 
 def run_sam_box(image_rgb, CLASSES, detections, mask_predictor):
     mask_predictor.set_image(image_rgb)
-    bounding_boxes = detections['bbox']
-    detected_classes = detections['class_id']
+    bounding_boxes = detections["bbox"]
+    detected_classes = detections["class_id"]
     masks_list = []
     mask_confidence_list = []
     dino_success = 1
 
     class_list = [CLASSES[i] for i in detected_classes]
-    #print(f'Detected Classes are : {class_list}')
-    
-    if len(class_list) == 0: 
-      print('MEGA WARNING: no objects detected :(')
-      dino_success = 0
-      return masks_list, mask_confidence_list, dino_success
-    
+    # print(f'Detected Classes are : {class_list}')
+
+    if len(class_list) == 0:
+        print("MEGA WARNING: no objects detected :(")
+        dino_success = 0
+        return masks_list, mask_confidence_list, dino_success
+
     else:
-      for i in len(bounding_boxes):
-          DINO_box = bounding_boxes[i]
-          masks, scores, _ = mask_predictor.predict(box=DINO_box, multimask_output=True)
-          best_mask_idx = np.argmax(scores)
-          high_conf_mask = masks[best_mask_idx]
-          masks_list.append(high_conf_mask)
-          mask_confidence_list.append(scores[best_mask_idx])
-      return masks_list, mask_confidence_list, dino_success
+        for i in len(bounding_boxes):
+            DINO_box = bounding_boxes[i]
+            masks, scores, _ = mask_predictor.predict(
+                box=DINO_box, multimask_output=True
+            )
+            best_mask_idx = np.argmax(scores)
+            high_conf_mask = masks[best_mask_idx]
+            masks_list.append(high_conf_mask)
+            mask_confidence_list.append(scores[best_mask_idx])
+        return masks_list, mask_confidence_list, dino_success
 
 
-def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False):
+def get_keywords(
+    img_dir, metadata, spacy_nlp, blip_processor, blip2_model, testing=False
+):
     count = 0
     start = time.time()
     for cat_id, cat in metadata.cats.items():
-        
         count += 1
-        if count > 3 and testing is True: return metadata
-        
+        if count > 3 and testing is True:
+            return metadata
+
         print(f'category {count} / 323: {cat["name_readable"]}')
 
         imgIds = metadata.getImgIds(catIds=cat_id)
-        if len(imgIds) == 0: 
-           continue
+        if len(imgIds) == 0:
+            continue
         else:
             imgs = metadata.loadImgs(imgIds)
 
@@ -134,92 +150,137 @@ def get_keywords(img_dir, metadata, spacy_nlp, blip_processor, blip2_model, test
             spacy_words = {}
             attempt = 0
             while len(spacy_words) == 0:
-                blip2_text = run_blip(blip_processor, blip2_model, f'{img_dir}/{img["file_name"]}')
+                blip2_text = run_blip(
+                    blip_processor, blip2_model, f'{img_dir}/{img["file_name"]}'
+                )
                 spacy_words = set(get_hotwords(spacy_nlp, blip2_text))
                 attempt += 1
                 if attempt > 5:
-                  blip2_text = 'FAILURE' 
-                  spacy_words = set(cat["name_readable"].split('_'))
-            
+                    blip2_text = "FAILURE"
+                    spacy_words = set(cat["name_readable"].split("_"))
+
             ann_id = metadata.add_annotation(img["id"], cat_id)
             metadata.add_blip2_annot(ann_id, img["id"], blip2_text)
             metadata.add_spacy_annot(ann_id, img["id"], spacy_words)
 
-    print(f'Time Taken: {time.time() - start}')
+    print(f"Time Taken: {time.time() - start}")
 
     return metadata
 
 
-def get_boxes_and_mask(img_dir, mask_dir, metadata, word_type, 
-                       grounding_dino_model, mask_predictor, use_search_words = False, testing = False, timing = False):
-  """
-  get DINO boxes and SAM masks
-  Args:
-  img_dir = image directory
-  mask_dir = SAM mask.pt directory
-  metadata = FoodMetadata object
-  word_type = blip2/spacy or modified class names derived with embeddings
-  
-  Returns:
-  metadata object
-  dino annotation ids
-  """
-  status_report = {'outside_class': [], 'no_detect': []}
-  count = 0
-  for cat_id, _ in metadata.cats.items():
-    count += 1
-    if count > 2 and testing is True:
-      return metadata, status_report
-    else:
-      imgIds = metadata.getImgIds(catIds=cat_id)
+def get_boxes_and_mask(
+    img_dir,
+    mask_dir,
+    metadata,
+    word_type,
+    grounding_dino_model,
+    mask_predictor,
+    use_search_words=False,
+    testing=False,
+    timing=False,
+):
+    """
+    get DINO boxes and SAM masks
+    Args:
+    img_dir = image directory
+    mask_dir = SAM mask.pt directory
+    metadata = FoodMetadata object
+    word_type = blip2/spacy or modified class names derived with embeddings
 
-      for img_id in imgIds:
+    Returns:
+    metadata object
+    dino annotation ids
+    """
+    status_report = {"outside_class": [], "no_detect": []}
+    count = 0
+    for cat_id, _ in metadata.cats.items():
+        count += 1
+        if count > 2 and testing is True:
+            return metadata, status_report
+        else:
+            imgIds = metadata.getImgIds(catIds=cat_id)
 
-        # Get Image
-        SOURCE_IMAGE_PATH = f'{img_dir}/{metadata.imgs[img_id]["file_name"]}'
-        image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
-        image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+            for img_id in imgIds:
+                # Get Image
+                SOURCE_IMAGE_PATH = f'{img_dir}/{metadata.imgs[img_id]["file_name"]}'
+                image_bgr = cv2.imread(SOURCE_IMAGE_PATH)
+                image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
-        # get correct annotation
-        for ann in metadata.imgToAnns[img_id]:
-           if ann['category_id'] == cat_id: ann_id = ann['id']
+                # get correct annotation
+                for ann in metadata.imgToAnns[img_id]:
+                    if ann["category_id"] == cat_id:
+                        ann_id = ann["id"]
 
-        # get words to pass to DINO
-        if word_type == 'mod_class':
-          try:
-            classes = set(metadata.anns[ann_id]['mod_class_from_embd'])
-          except:
-            print(f'Warning: Annotation {ann_id} does not contain words')
-            continue
-        elif word_type == 'blip2':
-          classes = set(metadata.anns[ann_id]['spacy'])
-        
-        if use_search_words is not False:
-          classes.extend(metadata.imgs[img_id]['Google Search Query'])
+                # get words to pass to DINO
+                if word_type == "mod_class":
+                    try:
+                        classes = set(metadata.anns[ann_id]["mod_class_from_embd"])
+                    except:
+                        print(f"Warning: Annotation {ann_id} does not contain words")
+                        continue
+                elif word_type == "blip2":
+                    classes = set(metadata.anns[ann_id]["spacy"])
 
-        forbidden_classes = ['and', 'or', 'bowl', 'bowls', 'plate', 'plates', 'of', 'with',
-                             'glass', 'glasses', 'fork', 'forks', 'knife', 'knives',
-                             'spoon', 'spoons', 'cup', 'cups']
+                if use_search_words is not False:
+                    classes.extend(metadata.imgs[img_id]["Google Search Query"])
 
-        CLASSES = [word for word in classes if word not in forbidden_classes]
-        # Run DINO
-        start = time.time()
-        detections, outside_class = run_dino(image_bgr, CLASSES, grounding_dino_model)
-        if outside_class == 1: 
-          status_report['outside_class'].append(ann_id)
-        dino_ann_ids = metadata.add_dino_annot(ann_id, img_id, CLASSES, detections['class_id'], detections['bbox'], detections['confidence'])
-        if timing: print(f'DINO Time Taken: {time.time() - start}')
+                forbidden_classes = [
+                    "and",
+                    "or",
+                    "bowl",
+                    "bowls",
+                    "plate",
+                    "plates",
+                    "of",
+                    "with",
+                    "glass",
+                    "glasses",
+                    "fork",
+                    "forks",
+                    "knife",
+                    "knives",
+                    "spoon",
+                    "spoons",
+                    "cup",
+                    "cups",
+                ]
 
-        # Run SAM
-        start = time.time()
-        masks_list, mask_confidence_list, outside_class, dino_success = run_sam_box(image_rgb, CLASSES, detections, mask_predictor)
-        if dino_success == 0: 
-          status_report['no_detect'].append(ann_id)
-          continue
-        metadata.add_sam_annot(dino_ann_ids, masks_list, mask_confidence_list, mask_dir)
-        if timing: print(f'SAM Time Taken: {time.time() - start}')
-  return metadata, status_report
+                CLASSES = [word for word in classes if word not in forbidden_classes]
+                # Run DINO
+                start = time.time()
+                detections, outside_class = run_dino(
+                    image_bgr, CLASSES, grounding_dino_model
+                )
+                if outside_class == 1:
+                    status_report["outside_class"].append(ann_id)
+                dino_ann_ids = metadata.add_dino_annot(
+                    ann_id,
+                    img_id,
+                    CLASSES,
+                    detections["class_id"],
+                    detections["bbox"],
+                    detections["confidence"],
+                )
+                if timing:
+                    print(f"DINO Time Taken: {time.time() - start}")
 
+                # Run SAM
+                start = time.time()
+                (
+                    masks_list,
+                    mask_confidence_list,
+                    outside_class,
+                    dino_success,
+                ) = run_sam_box(image_rgb, CLASSES, detections, mask_predictor)
+                if dino_success == 0:
+                    status_report["no_detect"].append(ann_id)
+                    continue
+                metadata.add_sam_annot(
+                    dino_ann_ids, masks_list, mask_confidence_list, mask_dir
+                )
+                if timing:
+                    print(f"SAM Time Taken: {time.time() - start}")
+    return metadata, status_report
 
 
 def get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor):
@@ -228,23 +289,34 @@ def get_mask_and_keywords(img_dir, mask_generator, blip2_model, blip_processor):
     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
     anns = run_sam_full(image_rgb, mask_generator)
-    sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=True)
-    img_full = np.ones((sorted_anns[0]['segmentation'].shape[0], sorted_anns[0]['segmentation'].shape[1], 4))
+    sorted_anns = sorted(anns, key=(lambda x: x["area"]), reverse=True)
+    img_full = np.ones(
+        (
+            sorted_anns[0]["segmentation"].shape[0],
+            sorted_anns[0]["segmentation"].shape[1],
+            4,
+        )
+    )
     img_full[:, :, 3] = 0
     for ann in sorted_anns:
-        img = np.zeros((sorted_anns[0]['segmentation'].shape[0], sorted_anns[0]['segmentation'].shape[1], 3))
-        m = ann['segmentation']
+        img = np.zeros(
+            (
+                sorted_anns[0]["segmentation"].shape[0],
+                sorted_anns[0]["segmentation"].shape[1],
+                3,
+            )
+        )
+        m = ann["segmentation"]
         img[m] = image_rgb[m]
         text = run_classifier(img, blip2_model, blip_processor)
         print(f"Food is {text}")
         color_mask = np.concatenate([np.random.random(3), [0.75]])
         img_full[m] = color_mask
-    plt.imsave('test_v3.png', img_full)
+    plt.imsave("test_v3.png", img_full)
 
 
 def assign_classes(metadata, embed_dict, category_names, cat_path):
-
-    with open(cat_path, "r" ) as f:
+    with open(cat_path, "r") as f:
         cats = f.readlines()
         mod_category_names = [cat.strip() for cat in cats]
 
@@ -256,7 +328,8 @@ def assign_classes(metadata, embed_dict, category_names, cat_path):
     # modded category name : embedding
     embedded_cats_dict = {}
     for cat in mod_category_names:
-        if cat[0] == '$': continue
+        if cat[0] == "$":
+            continue
         embedded_cats_dict[cat] = run_glove(embed_dict, cat)
 
     # for each annotation, embed the spacy words and find the nearest modified category
@@ -266,11 +339,11 @@ def assign_classes(metadata, embed_dict, category_names, cat_path):
         for word in words:
             embd = run_glove(embed_dict, word)
             if not isinstance(embd, np.ndarray):
-              print(f'word {word} in set {words} is not in embed dict')
+                print(f"word {word} in set {words} is not in embed dict")
             else:
-              spacy_dict[word] = embd
-        if len(spacy_dict) == 0: 
-            print('Warning: no modified class name assigned')
+                spacy_dict[word] = embd
+        if len(spacy_dict) == 0:
+            print("Warning: no modified class name assigned")
         # add the nearest modified classes and the associated classes to json
         mod_classes = run_nn_lookup(spacy_dict, embedded_cats_dict)
         classes = [cat for cat, mod in cat2mod.items() if mod in mod_classes]
@@ -278,11 +351,11 @@ def assign_classes(metadata, embed_dict, category_names, cat_path):
     return metadata
 
 
-if __name__ == '__main__':
-    HOME = 'C:/Users/marka/fun'
-    HOME = '/me'
+if __name__ == "__main__":
+    HOME = "C:/Users/marka/fun"
+    HOME = "/me"
 
-    model_dir = f'{HOME}/MealSegmentation/tmp/embd_models'
+    model_dir = f"{HOME}/MealSegmentation/tmp/embd_models"
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
@@ -293,13 +366,14 @@ if __name__ == '__main__':
     embd_model_type = "GloVe"
 
     # the path to the hand-modified category names
-    modded_cat_path = f'{HOME}/round2_categories_modified.txt'
+    modded_cat_path = f"{HOME}/round2_categories_modified.txt"
 
     from run_pipeline import download_glove
+
     model = download_glove(model_dir)
 
     # import a json file that has blip2/spacy annotations
-    metadata = FoodMetadata(f'{HOME}/public_validation_set_2.1_blip_spacy.json')
+    metadata = FoodMetadata(f"{HOME}/public_validation_set_2.1_blip_spacy.json")
     category_ids = metadata.loadCats(metadata.getCatIds())
     category_names = [_["name_readable"] for _ in category_ids]
 
@@ -307,7 +381,7 @@ if __name__ == '__main__':
     assign_classes(metadata, model, category_names, modded_cat_path)
 
     # look at one example
-    print(metadata.dataset['annotations'][0])
+    print(metadata.dataset["annotations"][0])
 
     # save it so you can check it out :)
-    metadata.export_coco(new_file_name='embedding_test.json')
+    metadata.export_coco(new_file_name="embedding_test.json")

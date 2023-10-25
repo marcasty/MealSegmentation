@@ -12,12 +12,18 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def sam_setup(sam_encoder_version, sam_checkpoint_path):
     if sam_checkpoint_path.split("/")[2] == "MobileSAM":
-        from mobile_sam import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
+        from mobile_sam import (
+            sam_model_registry,
+            SamAutomaticMaskGenerator,
+            SamPredictor,
+        )
 
         print("Importing MobileSAM")
     else:
         raise AssertionError("Desired Box-to-Mask model not supported")
-    sam = sam_model_registry[sam_encoder_version](checkpoint=sam_checkpoint_path).to(device=DEVICE)
+    sam = sam_model_registry[sam_encoder_version](checkpoint=sam_checkpoint_path).to(
+        device=DEVICE
+    )
     sam.eval()
     mask_predictor = SamPredictor(sam)
     return mask_predictor
@@ -110,10 +116,20 @@ def get_masks(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
                 for ann in metadata.imgToAnns[img_id]:
                     if ann["category_id"] == cat_id:
                         ann_id = ann["id"]
-                        if ann_id in metadata.dataset["info"]["detection_issues"]["failures"]:
-                            print(f'*skipped {ann_id}, it has no box*')
+                        if (
+                            ann_id
+                            in metadata.dataset["info"]["detection_issues"]["failures"]
+                        ):
+                            print(f"*skipped {ann_id}, it has no box*")
                             continue
                         if model == "sam":
-                            mask, mask_confidence = run_sam_conditioned(image_rgb, annotation=ann, sam_model=mask_predictor, device=DEVICE)
-                            metadata.add_sam_annot(ann_id, img_id, mask, mask_confidence, mask_dir)
+                            mask, mask_confidence = run_sam_conditioned(
+                                image_rgb,
+                                annotation=ann,
+                                sam_model=mask_predictor,
+                                device=DEVICE,
+                            )
+                            metadata.add_sam_annot(
+                                ann_id, img_id, mask, mask_confidence, mask_dir
+                            )
     return metadata

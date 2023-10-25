@@ -11,7 +11,9 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def dino_setup(config_path, checkpoint_path):
     from groundingdino.util.inference import Model as DINOModel
 
-    grounding_dino_model = DINOModel(model_config_path=config_path, model_checkpoint_path=checkpoint_path)
+    grounding_dino_model = DINOModel(
+        model_config_path=config_path, model_checkpoint_path=checkpoint_path
+    )
     return grounding_dino_model
 
 
@@ -20,13 +22,19 @@ def format_bbox(bboxes: np.ndarray, height: int, width: int) -> list:
     for i in range(len(bboxes)):
         bboxes[i][0] = max(0, bboxes[i][0])  # x1 floor is 0
         bboxes[i][1] = max(0, bboxes[i][1])  # y1 floor is 0
-        bboxes[i][2] = min(width - bboxes[i][0], bboxes[i][2])  # x2 ceiling is width - x1
-        bboxes[i][3] = min(height - bboxes[i][1], bboxes[i][3])  # y2 ceiling is height - y1
+        bboxes[i][2] = min(
+            width - bboxes[i][0], bboxes[i][2]
+        )  # x2 ceiling is width - x1
+        bboxes[i][3] = min(
+            height - bboxes[i][1], bboxes[i][3]
+        )  # y2 ceiling is height - y1
         bboxes[i] = [int(num) for num in bboxes[i]]
     return bboxes
 
 
-def run_dino(image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs) -> dict:
+def run_dino(
+    image: Union[np.ndarray, torch.Tensor], classes: List[str], **kwargs
+) -> dict:
     """given BGR image, produce boxes"""
 
     def enhance_class_name(class_names: List[str]) -> List[str]:
@@ -106,7 +114,9 @@ def get_boxes(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
     if "class_type" in kwargs:
         class_type = kwargs["class_type"]
     else:
-        raise AssertionError("Must specify which classes to send to model f(image+text) = box")
+        raise AssertionError(
+            "Must specify which classes to send to model f(image+text) = box"
+        )
 
     if model == "dino":
         if "model_chkpt" in kwargs:
@@ -137,12 +147,18 @@ def get_boxes(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
 
                 if model == "dino":
                     classes = metadata.anns[ann_id][class_type]
-                    detections = run_dino(image_rgb, classes, image_annot=img, dino_model=dino_model)
+                    detections = run_dino(
+                        image_rgb, classes, image_annot=img, dino_model=dino_model
+                    )
                     if detections["dino_success"] == 0:
-                        metadata.dataset["info"]["detection_issues"]["failures"].append(ann_id)
+                        metadata.dataset["info"]["detection_issues"]["failures"].append(
+                            ann_id
+                        )
                         continue
                     if detections["outside_class"] == 1:
-                        metadata.dataset["info"]["detection_issues"]["detect_nonclass"].append(ann_id)
+                        metadata.dataset["info"]["detection_issues"][
+                            "detect_nonclass"
+                        ].append(ann_id)
                     metadata.add_dino_annot(ann_id, img_id, detections)
                     # print(metadata.anns[ann_id])
     return metadata

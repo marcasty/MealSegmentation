@@ -11,11 +11,12 @@ import os
 import sys
 
 sys.path.append("../")
-sys.path.append('/me/unit_tests')
+sys.path.append("/me/unit_tests")
 from unit_tests.embedding_to_category_check import check_metadata_categories
 from unit_tests.generic_tests import check_missing_annotations
 from unit_tests.image_box_to_mask_check import check_missing_masks
 from unit_tests.image_text_to_box_check import check_missing_boxes
+
 HOME = os.path.expanduser("~")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 HOME = "/tmp"
@@ -23,9 +24,8 @@ HOME = "/tmp"
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-
     metadata = FoodMetadata(cfg.file.metadata)
-    #print(metadata.dataset["info"])
+    # print(metadata.dataset["info"])
 
     if cfg.stage.image_to_caption.is_component:
         metadata = get_captions(
