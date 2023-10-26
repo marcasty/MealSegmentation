@@ -2,6 +2,7 @@ import hydra
 from omegaconf import DictConfig
 from FoodMetadataCOCO import FoodMetadata
 from image_to_caption import get_captions
+from caption_to_keyword import get_keywords
 from text_to_embedding import get_embd_dicts
 from embedding_to_category import get_categories
 from image_text_to_box import get_boxes
@@ -30,14 +31,11 @@ def main(cfg: DictConfig) -> None:
     if cfg.stage.image_to_caption.is_component:
         metadata = get_captions(
             metadata,
-            model=cfg.stage.image_to_caption.model,
-            image_dir=cfg.path.images,
-            testing=cfg.var.testing,
-            model_chkpt=cfg.stage.image_to_caption.model_chkpt,
+            cfg
         )
 
     if cfg.stage.caption_to_keyword.is_component:
-        metadata = get_captions(
+        metadata = get_keywords(
             metadata,
             model=cfg.stage.caption_to_keyword.model,
             testing=cfg.var.testing,
