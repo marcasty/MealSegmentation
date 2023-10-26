@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from typing import Union
 from FoodMetadataCOCO import FoodMetadata
+from omegaconf import DictConfig
 import cv2
 from utils import assert_input
 
@@ -134,7 +135,7 @@ def run_llava15(image: Union[np.ndarray, torch.Tensor], model, processor, tokeni
     return generated_text
 
 
-def get_captions(metadata: FoodMetadata, cfg) -> FoodMetadata:
+def get_captions(metadata: FoodMetadata, cfg: DictConfig) -> FoodMetadata:
 
     model_name = cfg.stage.image_to_caption.model
     image_dir = cfg.path.images
@@ -150,7 +151,7 @@ def get_captions(metadata: FoodMetadata, cfg) -> FoodMetadata:
         top_p = cfg.stage.image_to_caption.top_p
         num_beams = cfg.stage.image_to_caption.num_beams
     else:
-        raise AssertionError(f"Model '{model}' not supported for image captioning")
+        raise AssertionError(f"Model '{model_name}' not supported for image captioning")
 
     count = 0
     for cat_id, cat in metadata.cats.items():
@@ -173,5 +174,5 @@ def get_captions(metadata: FoodMetadata, cfg) -> FoodMetadata:
                 elif model_name == 'llava15':
                     caption = run_llava15(image_rgb, model, processor, tokenizer, device, temperature, top_p, num_beams)
                 ann_id = metadata.create_annot(img["id"], cat_id)
-                metadata.add_annot(ann_id, img["id"], model, caption)
+                metadata.add_annot(ann_id, img["id"], model_name, caption)
     return metadata

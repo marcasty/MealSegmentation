@@ -1,5 +1,6 @@
 from string import punctuation
 from FoodMetadataCOCO import FoodMetadata
+from omegaconf import DictConfig
 
 
 def spacy_setup(specific_model):
@@ -28,23 +29,17 @@ def run_spacy(text: str, **kwargs) -> list:
     return list(set(result))
 
 
-def get_keywords(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
-    if "model" not in kwargs:
-        model = kwargs["model"]
-        raise AssertionError("Must Give a Model to Extract Keywords")
+def get_keywords(metadata: FoodMetadata,  cfg: DictConfig) -> FoodMetadata:
 
-    if model == "spacy":
-        if "model_chkpt" in kwargs:
-            spacy = spacy_setup(kwargs["specific_model"])
-        else:
-            raise AssertionError("Must Specify Model Details to Extract Keywords")
-    else:
-        raise AssertionError(f"Model '{model}' not supported for keyword extraction")
+    model_name = cfg.stage.image_to_caption.model
+    testing = cfg.var.testing
+    model_chkpt = cfg.stage.image_to_caption.model_chkpt
+    device = cfg.var.device
 
-    if "testing" in kwargs:
-        testing = kwargs["testing"]
+    if model_name == "spacy":
+        spacy = spacy_setup(model_chkpt)
     else:
-        testing = False
+        raise AssertionError(f"Model '{model_name}' not supported for keyword extraction")
 
     count = 0
     for cat_id, cat in metadata.cats.items():
@@ -58,7 +53,7 @@ def get_keywords(metadata: FoodMetadata, **kwargs) -> FoodMetadata:
         for img_id in img_ids:
             for ann in metadata.imgToAnns[img_id]:
                 if ann["category_id"] == cat_id:
-                    if model == "spacy":
+                    if model_name == "spacy":
                         keywords = run_spacy(ann["caption"], spacy)
                     metadata.add_text_annot(ann["id"], img_id, "keywords", keywords)
     return metadata

@@ -2,9 +2,10 @@ import numpy as np
 from typing import Tuple
 import os
 from FoodMetadataCOCO import FoodMetadata
+from omegaconf import DictConfig
 
 
-def download_glove(model_dir):
+def glove_setup(model_dir):
     """
     Get a dictionary of word embeddings from GloVe
     https://nlp.stanford.edu/projects/glove/
@@ -93,17 +94,14 @@ def run_llama2(text: str, **kwargs) -> np.ndarray:
     return embedding
 
 
-def get_embd_dicts(metadata: FoodMetadata, **kwargs) -> Tuple[dict, dict]:
-    if "model" in kwargs:
-        model = kwargs["model"]
-        if model == "glove":
-            embed_dict = download_glove(kwargs["model_dir"])
-        elif model == "mistral":
-            raise AssertionError("Setup Mistral")
-        else:
-            raise AssertionError(f"Model '{model}' not supported for embedding text")
-    else:
-        raise AssertionError("Must specify a model for embedding text")
+def get_embd_dicts(metadata: FoodMetadata, cfg: DictConfig) -> Tuple[dict, dict]:
+
+    model_name = cfg.stage.image_to_caption.model
+    testing = cfg.var.testing
+    model_chkpt = cfg.stage.image_to_caption.model_chkpt
+    device = cfg.var.device
+
+    embed_dict = glove_setup(kwargs["model_dir"])
 
     if "mod_cat_file" in kwargs:
         with open(kwargs["mod_cat_file"], "r") as f:
@@ -119,7 +117,7 @@ def get_embd_dicts(metadata: FoodMetadata, **kwargs) -> Tuple[dict, dict]:
 
     keyword_to_embed = {}
     for word in unique_keywords_list:
-        if model == "glove":
+        if model_name == "glove":
             keyword_to_embed[word] = run_glove(word, model=embed_dict)
         if len(keyword_to_embed[word]) == 0:
             print(f"Notice: Removing {word} from Keyword Dictionary")
@@ -127,7 +125,7 @@ def get_embd_dicts(metadata: FoodMetadata, **kwargs) -> Tuple[dict, dict]:
 
     mod_cat_to_embed = {}
     for word in mod_cat_names:
-        if model == "glove":
+        if model_name == "glove":
             mod_cat_to_embed[word] = run_glove(word, model=embed_dict)
         if len(mod_cat_to_embed[word]) == 0:
             print(f"Notice: Removing {word} from Modified Category Dictionary")

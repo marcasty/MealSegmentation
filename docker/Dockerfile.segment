@@ -92,6 +92,11 @@ RUN cd /tmp \
 RUN pip3 install \
     git+https://github.com/ChaoningZhang/MobileSAM.git
 
+RUN pip3 install \
+    urllib \
+    zipfile
+
+CMD ['python3', "download_glove.py"]
 
 WORKDIR /me
 ENV PYTHONUNBUFFERED=1

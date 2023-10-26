@@ -37,12 +37,9 @@ def main(cfg: DictConfig) -> None:
     if cfg.stage.caption_to_keyword.is_component:
         metadata = get_keywords(
             metadata,
-            model=cfg.stage.caption_to_keyword.model,
-            testing=cfg.var.testing,
-            model_chkpt=cfg.stage.caption_to_keyword.model_chkpt,
+            cfg
         )
 
-    # when we add support for llama and mistral, we should refactor what gets passed to "get_embd_dicts"
     if cfg.stage.text_to_embed.is_component:
         keyword_to_embed, mod_cat_to_embed = get_embd_dicts(
             metadata,
