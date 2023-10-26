@@ -8,6 +8,7 @@ import numpy as np
 import os
 import torch
 
+
 class FoodMetadata(COCO):
     """stores meta data on food images in COCO format"""
 
@@ -25,11 +26,19 @@ class FoodMetadata(COCO):
 
         # initialize new COCO JSON
         if annotation_file is None:
-            self.dataset = {"info": info, "categories": [], "images": [], "annotations": []}
+            self.dataset = {
+                "info": info,
+                "categories": [],
+                "images": [],
+                "annotations": [],
+            }
         # if making predictions on given data, remove given annotations
         else:
             if "detection_issues" not in self.dataset["info"]:
-                self.dataset["info"]["detection_issues"] = {"failures": [], "detect_nonclass": []}
+                self.dataset["info"]["detection_issues"] = {
+                    "failures": [],
+                    "detect_nonclass": [],
+                }
             if pred is True:
                 self.anns = {}
                 self.imgToAnns = {}
@@ -66,10 +75,17 @@ class FoodMetadata(COCO):
             else:
                 id = 1
             name = "-".join(ingredients)
-            name_readable = ", ".join(ingredient.capitalize() for ingredient in ingredients)
+            name_readable = ", ".join(
+                ingredient.capitalize() for ingredient in ingredients
+            )
 
             if name not in existing_food_names:
-                new_category = {"id": id, "name": name, "name_readable": name_readable, "supercategory": "food"}
+                new_category = {
+                    "id": id,
+                    "name": name,
+                    "name_readable": name_readable,
+                    "supercategory": "food",
+                }
                 self.dataset["categories"].append(new_category)
                 self.cats[id] = new_category
                 self.catToImgs[id] = []
@@ -166,7 +182,12 @@ class FoodMetadata(COCO):
                 self.imgToAnns[image_id].append(new_annotation)
             self.add_annot(ann_id, image_id, "class_id", detections["class_id"][i])
             self.add_annot(ann_id, image_id, "bbox", detections["bbox"][i])
-            self.add_annot(ann_id, image_id, "box_confidence", round(float(detections["box_confidence"][i]), 4))
+            self.add_annot(
+                ann_id,
+                image_id,
+                "box_confidence",
+                round(float(detections["box_confidence"][i]), 4),
+            )
 
     def add_sam_annot(self, ann_id, image_id, mask, mask_confidence, mask_dir):
         if mask_dir:
@@ -176,7 +197,9 @@ class FoodMetadata(COCO):
             self.add_annot(ann_id, image_id, "mask", mask_id)
         else:
             self.add_annot(ann_id, image_id, "mask", mask)
-        self.add_annot(ann_id, image_id, "mask_confidence", round(float(mask_confidence), 4))
+        self.add_annot(
+            ann_id, image_id, "mask_confidence", round(float(mask_confidence), 4)
+        )
 
     # save the dict as a json file
     def export_coco(self, new_file_name=None):
@@ -199,7 +222,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Defines a metadata object in COCO format and scrapes Google for images of food."
     )
-    parser.add_argument("--metadata_json", type=str, help="JSON file containing metadata in COCO format")
+    parser.add_argument(
+        "--metadata_json", type=str, help="JSON file containing metadata in COCO format"
+    )
     return parser.parse_args()
 
 

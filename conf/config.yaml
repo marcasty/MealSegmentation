@@ -3,6 +3,9 @@ stage:
     is_component: False
     model: 'blip2'
     model_chkpt: "Salesforce/blip2-opt-2.7b"
+    temperature: 0.2
+    top_p: 0.1
+    num_beams: 1
   caption_to_keyword:
     is_component: False
     model: 'spacy'
